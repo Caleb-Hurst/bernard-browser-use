@@ -49,7 +49,7 @@ jobs:
             mkdir -p artifacts/issue-$num
             cp -r tmp/recordings/* artifacts/issue-$num/ || true
             # Comment on the issue with artifact instructions
-            gh issue comment $num --body "✅ Test run complete!\n\nYou can download the video artifact for this test from the Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (see 'bernard-videos' artifact, issue-$num folder)."
+            gh issue comment $num --body "✅ Test run complete!  You can download the video artifact for this test from the Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (see 'bernard-videos' artifact, issue-$num folder)."
           done
 
       - name: Upload video artifacts
