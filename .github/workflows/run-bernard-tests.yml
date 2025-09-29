@@ -56,4 +56,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bernard-videos
-          path: artifacts/
+          path: artifacts/yes
