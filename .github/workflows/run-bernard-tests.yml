@@ -20,12 +20,15 @@ jobs:
         with:
           python-version: '3.11'
 
+
       - name: Install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install -e .[video]
-          pip install gh
+
+      - name: Install GitHub CLI
+        uses: cli/cli-action@v2
 
       - name: Find issues with needs-test label
         id: find_issues
@@ -38,6 +41,7 @@ jobs:
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           source venv/bin/activate
           cat issues.json | jq -c '.[]' | while read issue; do
@@ -48,7 +52,8 @@ jobs:
             # Move the video(s) to a unique folder per issue
             mkdir -p artifacts/issue-$num
             cp -r tmp/recordings/* artifacts/issue-$num/ || true
-            # Comment on the issue with artifact instructions
+            ls -l tmp/recordings/ || true
+            ls -l artifacts/issue-$num/ || true
             gh issue comment $num --body "✅ Test run complete!  You can download the video artifact for this test from the Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (see 'bernard-videos' artifact, issue-$num folder)."
           done
 
