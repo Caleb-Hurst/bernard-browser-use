@@ -1,11 +1,23 @@
+
+import sys
+import os
 import asyncio
 from pathlib import Path
 from browser_use import Agent, Browser, ChatOpenAI
 
+
 async def main():
+    # Get login info and directions from environment variables (set in workflow or locally)
+    login_user = '6thph8yu2o@vvatxiy.com'
+    login_pass ='Testing123!'
+    directions = 'go to app.bernieportal.com Log in first, then perform the following steps:'
+
+    # Concatenate info to the task
+    full_task = f"{directions}\nLogin with user: {login_user} and password: {login_pass}\n{task}"
+
     browser_session = Browser(record_video_dir=Path('./tmp/recordings'))
     agent = Agent(
-        task='go to app.bernieportal.com ',
+        task=full_task,
         llm=ChatOpenAI(model='gpt-5-mini'),
         browser_session=browser_session,
     )
