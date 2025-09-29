@@ -12,6 +12,9 @@ async def main():
     login_pass ='Testing123!'
     directions = 'go to app.bernieportal.com Log in first, then perform the following steps:'
 
+    # Get the task from the command line argument, or use a default
+    task = sys.argv[1] if len(sys.argv) > 1 else ''
+
     # Concatenate info to the task
     full_task = f"{directions}\nLogin with user: {login_user} and password: {login_pass}\n{task}"
 
