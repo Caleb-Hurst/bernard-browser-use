@@ -3,7 +3,7 @@ import sys
 import os
 import asyncio
 from pathlib import Path
-from browser_use import Agent, Browser, ChatOpenAI
+from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
 
 
 async def main():
@@ -15,7 +15,9 @@ async def main():
     # Concatenate info to the task
     full_task = f"{directions}\nLogin with user: {login_user} and password: {login_pass}\n{task}"
 
-    browser_session = Browser(record_video_dir=Path('./tmp/recordings'))
+    # Set up headless browser profile
+    profile = BrowserProfile(headless=True)
+    browser_session = Browser(browser_profile=profile, record_video_dir=Path('./tmp/recordings'))
     agent = Agent(
         task=full_task,
         llm=ChatOpenAI(model='gpt-5-mini'),
