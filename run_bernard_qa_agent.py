@@ -16,7 +16,7 @@ async def main():
     task = sys.argv[1] if len(sys.argv) > 1 else ''
 
     # Concatenate info to the task
-    full_task = f"{directions}\nLogin with user: {login_user} and password: {login_pass}\n{task}"
+    full_task = f"{directions}\nLogin with username: {login_user} and password: {login_pass}\n{task} once logged in you have completed your task"
 
     # Set up headless browser profile
     profile = BrowserProfile(headless=True)
