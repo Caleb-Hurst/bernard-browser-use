@@ -28,7 +28,7 @@ jobs:
           pip install -e .[video]
 
       - name: Install GitHub CLI
-        uses: cli/cli-action@v2
+        uses: actions/gh-cli@v2
 
       - name: Find issues with needs-test label
         id: find_issues
