@@ -22,7 +22,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install -e .
+          pip install -e .[video]
           pip install gh
 
       - name: Find issues with needs-test label
@@ -30,5 +30,28 @@ jobs:
         run: |
           gh issue list --label needs-test --state open --json number,title,body > issues.json
 
-      # Next steps will process each issue and run your program
-      # We'll add those in the next iteration
+
+
+      - name: Run Bernard QA Agent for each issue and comment artifact instructions
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          source venv/bin/activate
+          cat issues.json | jq -c '.[]' | while read issue; do
+            desc=$(echo "$issue" | jq -r '.body')
+            num=$(echo "$issue" | jq -r '.number')
+            # Run the agent with the issue description as the task
+            python run_bernard_qa_agent.py "$desc"
+            # Move the video(s) to a unique folder per issue
+            mkdir -p artifacts/issue-$num
+            cp -r tmp/recordings/* artifacts/issue-$num/ || true
+            # Comment on the issue with artifact instructions
+            gh issue comment $num --body "✅ Test run complete!\n\nYou can download the video artifact for this test from the Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (see 'bernard-videos' artifact, issue-$num folder)."
+          done
+
+      - name: Upload video artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bernard-videos
+          path: artifacts/
