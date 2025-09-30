@@ -19,6 +19,7 @@ venv/
 
 # Build files
 dist/
+chrome_profile/
 
 # Data files
 *.gif
