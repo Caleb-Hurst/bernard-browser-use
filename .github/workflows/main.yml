@@ -1,0 +1,31 @@
+name: Generate Test Instructions on Approval
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  generate-test-instructions:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate test instructions with OpenAI
+        id: openai
+        uses: mhausenblas/openai-github-action@v2.1.0
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Generate concise, bullet-pointed test instructions suitable for browser agent testing for the following GitHub issue.
+            Title: ${{ github.event.issue.title }}
+            Description: ${{ github.event.issue.body }}
+          max_tokens: 300
+
+      - name: Comment on issue with test instructions
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            **BROWSER AGENT TESTING INSTRUCTIONS**
+
+            ${{ steps.openai.outputs.response }}
