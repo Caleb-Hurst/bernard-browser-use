@@ -48,5 +48,5 @@ jobs:
           curl -sSL -X POST \
             -H "Authorization: token $GH_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"body\":\"$COMMENT\"}" \
+            -d "$(jq -nc --arg body "$COMMENT" '{body: $body}')" \
             "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments"
