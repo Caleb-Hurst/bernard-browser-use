@@ -34,7 +34,9 @@ jobs:
               "max_tokens":300
             }')
           INSTRUCTIONS=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
-          echo "instructions=$INSTRUCTIONS" >> $GITHUB_OUTPUT
+          echo "instructions<<EOF" >> $GITHUB_OUTPUT
+          echo "$INSTRUCTIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comment with Test Summary
         env:
