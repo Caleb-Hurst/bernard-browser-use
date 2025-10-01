@@ -1,52 +1,30 @@
-name: Generate Test Instructions on Project Card Done
+name: Summarize Issue for Testing When Labeled "needs-test"
 
 on:
-  project_card:
-    types: [moved]
+  issues:
+    types: [labeled]
 
 jobs:
-  generate-test-instructions:
+  summarize-for-testing:
+    if: github.event.label.name == 'needs-test'
     runs-on: ubuntu-latest
     steps:
-      - name: Debug event payload and column name
+      - name: Get Issue Info
+        id: get-issue
         run: |
-          echo "Column name is: '${{ github.event.project_card.column_name }}'"
-          cat $GITHUB_EVENT_PATH
+          echo "title<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ github.event.issue.title }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Check if column is Done (case-insensitive, trims spaces)
-        id: check
-        run: |
-          COL="${{ github.event.project_card.column_name }}"
-          # Remove leading/trailing spaces and make lowercase
-          COL_CLEAN=$(echo "$COL" | tr -d '\r' | xargs | tr '[:upper:]' '[:lower:]')
-          echo "Normalized column: '$COL_CLEAN'"
-          if [[ "$COL_CLEAN" != "done" ]]; then
-            echo "Not in Done column. Skipping."
-            exit 78
-          fi
-
-      - name: Get issue info
-        id: issue
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ISSUE_URL="${{ github.event.project_card.content_url }}"
-          if [[ -z "$ISSUE_URL" ]]; then
-            echo "No linked issue. Skipping."
-            exit 0
-          fi
-          curl -sSL -H "Authorization: token $GH_TOKEN" "$ISSUE_URL" > issue.json
-          echo "number=$(jq .number issue.json)" >> $GITHUB_OUTPUT
-          echo "title=$(jq -r .title issue.json)" >> $GITHUB_OUTPUT
-          echo "body=$(jq -r .body issue.json)" >> $GITHUB_OUTPUT
-          echo "repo=$(jq -r .repository_url issue.json | awk -F'repos/' '{print $2}')" >> $GITHUB_OUTPUT
-
-      - name: Generate test instructions with OpenAI
-        id: openai
+      - name: Summarize with LLM
+        id: summarize
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          PROMPT="Generate concise, bullet-pointed test instructions suitable for browser agent testing for the following GitHub issue.\nTitle: ${{ steps.issue.outputs.title }}\nDescription: ${{ steps.issue.outputs.body }}"
+          PROMPT="Summarize the following GitHub issue for testing, and generate concise, bullet-pointed test instructions suitable for browser agent testing.\nTitle: ${{ steps.get-issue.outputs.title }}\nDescription: ${{ steps.get-issue.outputs.body }}"
           RESPONSE=$(curl -sS https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -58,13 +36,13 @@ jobs:
           INSTRUCTIONS=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
           echo "instructions=$INSTRUCTIONS" >> $GITHUB_OUTPUT
 
-      - name: Comment on issue with test instructions
+      - name: Comment with Test Summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          COMMENT="**BROWSER AGENT TESTING INSTRUCTIONS**\n\n${{ steps.openai.outputs.instructions }}"
-          ISSUE_NUMBER=${{ steps.issue.outputs.number }}
-          REPO=${{ steps.issue.outputs.repo }}
+          COMMENT="**BROWSER AGENT TESTING INSTRUCTIONS**\n\n${{ steps.summarize.outputs.instructions }}"
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          REPO=${{ github.repository }}
           curl -sSL -X POST \
             -H "Authorization: token $GH_TOKEN" \
             -H "Content-Type: application/json" \
