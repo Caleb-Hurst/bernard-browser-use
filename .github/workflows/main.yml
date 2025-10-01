@@ -42,7 +42,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          COMMENT="**BROWSER AGENT TESTING INSTRUCTIONS**\n\n${{ steps.summarize.outputs.instructions }}"
+          COMMENT=$(cat <<EOF
+**BROWSER AGENT TESTING INSTRUCTIONS**
+
+${{ steps.summarize.outputs.instructions }}
+EOF
+)
           ISSUE_NUMBER=${{ github.event.issue.number }}
           REPO=${{ github.repository }}
           curl -sSL -X POST \
