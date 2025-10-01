@@ -41,13 +41,9 @@ jobs:
       - name: Comment with Test Summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTRUCTIONS: ${{ steps.summarize.outputs.instructions }}
         run: |
-          COMMENT=$(cat <<EOF
-**BROWSER AGENT TESTING INSTRUCTIONS**
-
-${{ steps.summarize.outputs.instructions }}
-EOF
-)
+          COMMENT="**BROWSER AGENT TESTING INSTRUCTIONS**\n\n$INSTRUCTIONS"
           ISSUE_NUMBER=${{ github.event.issue.number }}
           REPO=${{ github.repository }}
           curl -sSL -X POST \
