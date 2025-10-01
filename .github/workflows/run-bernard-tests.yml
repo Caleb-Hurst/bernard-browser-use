@@ -1,64 +1,65 @@
-name: Run Bernard Tests for Issues
+name: Generate Test Instructions on Project Card Approval
 
 on:
-  workflow_dispatch:
+  project_card:
+    types: [moved]
 
 jobs:
-  run-bernard-tests:
+  generate-test-instructions:
     runs-on: ubuntu-latest
-    env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
-      - name: Authenticate GitHub CLI
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-
-      - name: Install dependencies
+      - name: Check if column is Approved
+        id: check
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -e .[video]
+          if [ "${{ github.event.project_card.column_name }}" != "Approved" ]; then
+            echo "Not in Approved column. Skipping."
+            exit 78
+          fi
 
-      - name: Install GitHub CLI
-        uses: actions/gh-cli@v2
-
-      - name: Find issues with needs-test label
-        id: find_issues
-        run: |
-          gh issue list --label needs-test --state open --json number,title,body > issues.json
-
-
-
-      - name: Run Bernard QA Agent for each issue and comment artifact instructions
+      - name: Get issue info
+        id: issue
         env:
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Extract issue API URL from the project card event payload
+          ISSUE_URL="${{ github.event.project_card.content_url }}"
+          if [[ -z "$ISSUE_URL" ]]; then
+            echo "No linked issue. Skipping."
+            exit 0
+          fi
+          # Get issue details
+          curl -sSL -H "Authorization: token $GH_TOKEN" "$ISSUE_URL" > issue.json
+          echo "number=$(jq .number issue.json)" >> $GITHUB_OUTPUT
+          echo "title=$(jq -r .title issue.json)" >> $GITHUB_OUTPUT
+          echo "body=$(jq -r .body issue.json)" >> $GITHUB_OUTPUT
+          echo "repo=$(jq -r .repository_url issue.json | awk -F'repos/' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Generate test instructions with OpenAI
+        id: openai
+        env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          source venv/bin/activate
-          cat issues.json | jq -c '.[]' | while read issue; do
-            desc=$(echo "$issue" | jq -r '.body')
-            num=$(echo "$issue" | jq -r '.number')
-            # Run the agent with the issue description as the task
-            python run_bernard_qa_agent.py "$desc"
-            # Move the video(s) to a unique folder per issue
-            mkdir -p artifacts/issue-$num
-            cp -r tmp/recordings/* artifacts/issue-$num/ || true
-            ls -l tmp/recordings/ || true
-            ls -l artifacts/issue-$num/ || true
-            gh issue comment $num --body "✅ Test run complete!  You can download the video artifact for this test from the Actions run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (see 'bernard-videos' artifact, issue-$num folder)."
-          done
+          PROMPT="Generate concise, bullet-pointed test instructions suitable for browser agent testing for the following GitHub issue.\nTitle: ${{ steps.issue.outputs.title }}\nDescription: ${{ steps.issue.outputs.body }}"
+          RESPONSE=$(curl -sS https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+              "model":"gpt-4o",
+              "messages":[{"role":"user","content":"'"$PROMPT"'"}],
+              "max_tokens":300
+            }')
+          INSTRUCTIONS=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+          echo "instructions=$INSTRUCTIONS" >> $GITHUB_OUTPUT
 
-      - name: Upload video artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: bernard-videos
-          path: artifacts/yes
+      - name: Comment on issue with test instructions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMENT="**BROWSER AGENT TESTING INSTRUCTIONS**\n\n${{ steps.openai.outputs.instructions }}"
+          ISSUE_NUMBER=${{ steps.issue.outputs.number }}
+          REPO=${{ steps.issue.outputs.repo }}
+          curl -sSL -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\":\"$COMMENT\"}" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments"
