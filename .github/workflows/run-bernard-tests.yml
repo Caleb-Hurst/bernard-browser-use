@@ -11,7 +11,7 @@ jobs:
       - name: Check if column is Approved
         id: check
         run: |
-          if [ "${{ github.event.project_card.column_name }}" != "Approved" ]; then
+          if [ "${{ github.event.project_card.column_name }}" != "Done" ]; then
             echo "Not in Approved column. Skipping."
             exit 78
           fi
