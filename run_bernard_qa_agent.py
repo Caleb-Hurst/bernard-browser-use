@@ -7,7 +7,7 @@ import requests
 import glob
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO = "Caleb-Hurst/bernard-browser-use"
+REPO = "bernardhealth/bernard-browser-use"
 TAG_NAME = "video-uploads"
 
 headers = {
@@ -66,23 +66,25 @@ def update_labels(issue_number):
 
 async def main():
     # Get login info and directions from environment variables (set in workflow or locally)
-    login_user = '6thph8yu2o@vvatxiy.com'
-    login_pass ='Testing123!'
-    directions = 'Go to app.bernieportal.com Log in first, then take the contents of the following github ticket and verify that this is complete. GitHub Ticket contents:'
+    login_username = 'alyssak@admin316.com'
+    login_password ='Testing123!'
+    directions = f"YOU ARE THE MANUAL QA TEST ENGINEER go to https://staging.bernieportal.com Log in first using username:{login_username}, and passward:{login_password} please take the following testing steps and output your results."
 
     # Get the task from the command line argument, or use a default
     task = sys.argv[1] if len(sys.argv) > 1 else ''
 
+    full_task = f"{directions}\n\n{task}"
+
     # Accept issue number as second argument
     issue_number = sys.argv[2] if len(sys.argv) > 2 else None
+
     # Accept labels as third argument (comma-separated string)
     labels = sys.argv[3].split(',') if len(sys.argv) > 3 else []
-    print(f"[DEBUG] Labels received: {labels}")
 
     # Context variable
     context = ""
     if 'recruiting' in labels:
-        recruiting_path = '/git/bernieportal/agents/recruiting.txt'
+        recruiting_path = str(Path(__file__).parent / 'recruiting.txt')
         print(f"[DEBUG] Checking for recruiting context at: {recruiting_path}")
         if os.path.exists(recruiting_path):
             with open(recruiting_path, 'r') as f:
@@ -91,13 +93,8 @@ async def main():
         else:
             print(f"[DEBUG] recruiting.txt not found at: {recruiting_path}")
 
-    # Concatenate info to the task
-    # full_task = f"{directions}\nLogin with username: {login_user} and password: {login_pass}\n{task} once you have completed this you do not need to logout"
-    # full_task = f"{context}\n{task}"
-    full_task = f"{task}"
-
     # Set up headless browser profile with matching window, viewport, and video size
-    width, height = 1920, 1080
+    width, height = 1920, 1280
     profile = BrowserProfile(
         headless=True,
         window_size={'width': width, 'height': height},
@@ -117,6 +114,7 @@ async def main():
     agent = Agent(
         task=full_task,
         llm=ChatOpenAI(model='gpt-5-mini'),
+        extend_system_message=context,
         browser_session=browser_session,
     )
     await agent.run(max_steps=100)
