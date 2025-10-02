@@ -56,7 +56,6 @@ jobs:
                           ... on ProjectV2ItemFieldMilestoneValue { __typename }
                           ... on ProjectV2ItemFieldPullRequestValue { __typename }
                           ... on ProjectV2ItemFieldReviewerValue { __typename }
-                          ... on ProjectV2ItemFieldUnknownValue { __typename }
                         }
                       }
                     }
