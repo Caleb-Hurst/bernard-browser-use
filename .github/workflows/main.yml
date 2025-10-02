@@ -20,17 +20,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Copilot CLI extension
-        run: gh extension install github/gh-copilot
-        env:
-          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
-
       - name: Find issues in Review status
         env:
           GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
           PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
-          STATUS_FIELD_ID="PVTSSF_lAHOBtn0hM4BEg5vzg2Hmgo"
           REVIEW_OPTION_ID="df73e18b"
 
           echo "---- Running GraphQL query to fetch Project items ----"
@@ -45,24 +39,7 @@ jobs:
                       }
                       fieldValues(first: 20) {
                         nodes {
-                          ... on ProjectV2ItemFieldSingleSelectValue {
-                            field {
-                              ... on ProjectV2Field {
-                                id
-                              }
-                            }
-                            optionId
-                          }
-                          ... on ProjectV2ItemFieldTextValue { __typename }
-                          ... on ProjectV2ItemFieldNumberValue { __typename }
-                          ... on ProjectV2ItemFieldDateValue { __typename }
-                          ... on ProjectV2ItemFieldIterationValue { __typename }
-                          ... on ProjectV2ItemFieldRepositoryValue { __typename }
-                          ... on ProjectV2ItemFieldUserValue { __typename }
-                          ... on ProjectV2ItemFieldLabelValue { __typename }
-                          ... on ProjectV2ItemFieldMilestoneValue { __typename }
-                          ... on ProjectV2ItemFieldPullRequestValue { __typename }
-                          ... on ProjectV2ItemFieldReviewerValue { __typename }
+                          ... on ProjectV2ItemFieldSingleSelectValue { optionId }
                         }
                       }
                     }
@@ -71,9 +48,6 @@ jobs:
               }
             }
           ' > items.json
-
-          echo "---- Contents of items.json ----"
-          cat items.json
 
           echo "---- Extracting issue numbers in Review status ----"
           ISSUE_NUMBERS=$(jq -r --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
@@ -84,37 +58,52 @@ jobs:
           ' items.json | xargs)
 
           echo "Extracted ISSUE_NUMBERS: '$ISSUE_NUMBERS'"
-
           echo "ISSUE_NUMBERS=$ISSUE_NUMBERS" >> $GITHUB_ENV
 
-      - name: Summarize with Copilot
+      - name: Summarize with OpenAI and comment
         if: env.ISSUE_NUMBERS != ''
         env:
           GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
+          OPENAI_API_KEY: ${{ secrets.OPEN_API_KEY }}
         run: |
           REPO="bernardhealth/bernard-browser-use"
-          echo "Starting Copilot summarization for ISSUES: $ISSUE_NUMBERS"
           for ISSUE_NUMBER in $ISSUE_NUMBERS; do
-            echo "Processing issue #$ISSUE_NUMBER"
             LABELS=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
-            echo "Labels for issue #$ISSUE_NUMBER: $LABELS"
             if echo "$LABELS" | grep -q '^copilot-reviewed$'; then
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
             fi
+
+            ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title --jq '.title')
+            ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body')
             PRS=$(gh pr list --repo "$REPO" --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
-            echo "Linked PRs for issue #$ISSUE_NUMBER: $PRS"
-            PR_URLS=""
+            PR_SUMMARIES=""
+
             for PR in $PRS; do
-              PR_URLS="$PR_URLS https://github.com/$REPO/pull/$PR"
+              PR_TITLE=$(gh pr view "$PR" --repo "$REPO" --json title --jq '.title')
+              PR_BODY=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body')
+              PR_SUMMARIES="$PR_SUMMARIES\nPR #$PR: $PR_TITLE\n$PR_BODY\n"
             done
-            PROMPT="Summarize issue #$ISSUE_NUMBER and the following linked pull requests: $PR_URLS. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct."
-            echo "Prompt for Copilot:\n$PROMPT"
-            gh copilot agent-task \
-              --repo "$REPO" \
-              --issue "$ISSUE_NUMBER" \
-              --prompt "$PROMPT" \
-              --post-comment
-            echo "Adding 'copilot-reviewed' label to issue #$ISSUE_NUMBER"
+
+            PROMPT="Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct.
+
+Issue #$ISSUE_NUMBER: $ISSUE_TITLE
+$ISSUE_BODY
+
+$PR_SUMMARIES"
+
+            SUMMARY=$(curl -s https://api.openai.com/v1/chat/completions \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -d '{
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                  {"role": "system", "content": "You are an expert open source project reviewer."},
+                  {"role": "user", "content": "'"${PROMPT//$'\n'/\\n}"'"}
+                ],
+                "max_tokens": 500
+              }' | jq -r '.choices[0].message.content')
+
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "### OpenAI Summary\n$SUMMARY"
             gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-reviewed"
           done
