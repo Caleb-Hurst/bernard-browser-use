@@ -57,11 +57,6 @@ jobs:
           echo "Extracted ISSUE_NUMBERS: '$ISSUE_NUMBERS'"
           echo "ISSUE_NUMBERS=$ISSUE_NUMBERS" >> $GITHUB_ENV
 
-      - name: Debug OpenAI Key Length
-        run: echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
       - name: Summarize with OpenAI and comment
         if: env.ISSUE_NUMBERS != ''
         env:
