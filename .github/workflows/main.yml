@@ -18,7 +18,6 @@ jobs:
           sudo apt-get install -y gh jq
 
       - name: Find issues in Review status
-        id: find-review-issues
         env:
           GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
@@ -28,7 +27,7 @@ jobs:
           STATUS_FIELD_ID="PVTSSF_lAHOBtn0hM4BEg5vzg2Hmgo"
           REVIEW_OPTION_ID="df73e18b"
 
-          # Query all items in the project with "Review" status
+          echo "---- Running GraphQL query to fetch Project items ----"
           gh api graphql -f query='
             query {
               node(id: "'$PROJECT_ID'") {
@@ -67,7 +66,10 @@ jobs:
             }
           ' > items.json
 
-          # Extract issue numbers in Review
+          echo "---- Contents of items.json ----"
+          cat items.json
+
+          echo "---- Extracting issue numbers in Review status ----"
           ISSUE_NUMBERS=$(jq -r --arg STATUS_FIELD_ID "$STATUS_FIELD_ID" --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
             .data.node.items.nodes[]
             | select(.fieldValues.nodes[]?
@@ -75,33 +77,38 @@ jobs:
             | .content.number
           ' items.json | xargs)
 
+          echo "Extracted ISSUE_NUMBERS: '$ISSUE_NUMBERS'"
+
           echo "ISSUE_NUMBERS=$ISSUE_NUMBERS" >> $GITHUB_ENV
 
       - name: Summarize with Copilot
         if: env.ISSUE_NUMBERS != ''
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
           set -euo pipefail
           REPO="${{ github.repository }}"
+          echo "Starting Copilot summarization for ISSUES: $ISSUE_NUMBERS"
           for ISSUE_NUMBER in $ISSUE_NUMBERS; do
-            # Skip if already summarized, e.g., check for a specific label or comment
-            SUMMARY_COMMENT=$(gh issue view "$ISSUE_NUMBER" --json comments --jq '.comments[].body' | grep '### Copilot Summary' || true)
-            if [ -n "$SUMMARY_COMMENT" ]; then
+            echo "Processing issue #$ISSUE_NUMBER"
+            LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels --jq '.labels[].name')
+            echo "Labels for issue #$ISSUE_NUMBER: $LABELS"
+            if echo "$LABELS" | grep -q '^copilot-reviewed$'; then
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
             fi
-
             PRS=$(gh pr list --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
+            echo "Linked PRs for issue #$ISSUE_NUMBER: $PRS"
             PR_URLS=""
             for PR in $PRS; do
               PR_URLS="$PR_URLS https://github.com/$REPO/pull/$PR"
             done
-
             PROMPT="Summarize issue #$ISSUE_NUMBER and the following linked pull requests: $PR_URLS. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct."
-
+            echo "Prompt for Copilot:\n$PROMPT"
             gh copilot agent-task \
               --issue "$ISSUE_NUMBER" \
               --prompt "$PROMPT" \
               --post-comment
+            echo "Adding 'copilot-reviewed' label to issue #$ISSUE_NUMBER"
+            gh issue edit "$ISSUE_NUMBER" --add-label "copilot-reviewed"
           done
