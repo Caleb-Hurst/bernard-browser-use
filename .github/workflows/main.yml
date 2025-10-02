@@ -88,6 +88,12 @@ jobs:
               PR_SUMMARIES="$PR_SUMMARIES\nPR #$PR: $PR_TITLE\n$PR_BODY\n"
             done
 
+            # Additional debugging for prompt and summaries
+            echo "DEBUG: ISSUE_NUMBER=$ISSUE_NUMBER"
+            echo "DEBUG: ISSUE_TITLE=$ISSUE_TITLE"
+            echo "DEBUG: ISSUE_BODY=$ISSUE_BODY"
+            echo -e "DEBUG: PR_SUMMARIES=$PR_SUMMARIES"
+
             PROMPT="Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a bullet-point test plan describing how to verify the implementation is correct.\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY\n\n$PR_SUMMARIES"
 
             DATA=$(jq -n \
