@@ -1,8 +1,8 @@
-name: Summarize Issue and Linked PRs on Project Review
+name: Summarize Issue and Linked PRs in Project Review
 
 on:
-  project_v2_item:
-    types: [edited]
+  schedule:
+    - cron: '* * * * *' # every 2 minutes
 
 jobs:
   summarize:
@@ -11,39 +11,38 @@ jobs:
       contents: read
       issues: write
       pull-requests: read
-      projects: read
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install GitHub CLI
+      - name: Set up GitHub CLI
         run: |
           sudo apt-get update
           sudo apt-get install gh -y
 
-      - name: Extract Issue Number & Check Status
-        id: get-issue
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
-          script: |
-            // Get the project item data
-            const item = context.payload.project_v2_item;
-            // You may need to query the API for the latest field values
-            // For example, using graphql to get field values and status
-            const { data } = await github.graphql(`
-              query($id: ID!) {
-                node(id: $id) {
-                  ... on ProjectV2Item {
-                    content {
-                      ... on Issue { number }
-                    }
-                    fieldValues(first: 10) {
-                      nodes {
-                        ... on ProjectV2ItemFieldSingleSelectValue {
-                          name
-                          field {
-                            name
+      - name: Find issues in Review status
+        id: find-review-issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PROJECT_ID="YOUR_PROJECT_NODE_ID"
+          STATUS_FIELD_ID="YOUR_STATUS_FIELD_NODE_ID"
+          REVIEW_OPTION_ID="YOUR_REVIEW_OPTION_NODE_ID"
+
+          # Query all items in the project with "Review" status
+          gh api graphql -f query='
+            query {
+              node(id: "'$PROJECT_ID'") {
+                ... on ProjectV2 {
+                  items(first: 30) {
+                    nodes {
+                      content {
+                        ... on Issue { number }
+                      }
+                      fieldValues(first: 10) {
+                        nodes {
+                          ... on ProjectV2ItemFieldSingleSelectValue {
+                            field {
+                              id
+                            }
+                            optionId
                           }
                         }
                       }
@@ -51,35 +50,41 @@ jobs:
                   }
                 }
               }
-            `, { id: item.node_id });
-            // Find the status field (adjust if you use a different field name)
-            const statusField = data.node.fieldValues.nodes.find(
-              n => n.field?.name?.toLowerCase() === 'status'
-            );
-            const status = statusField ? statusField.name : null;
-            const issueNumber = data.node.content?.number;
-            // Set outputs
-            core.setOutput('status', status);
-            core.setOutput('issue', issueNumber);
+            }
+          ' > items.json
+
+          # Extract issue numbers in Review
+          ISSUE_NUMBERS=$(jq -r --arg STATUS_FIELD_ID "$STATUS_FIELD_ID" --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
+            .data.node.items.nodes[]
+            | select(.fieldValues.nodes[]?
+                | select(.field.id == $STATUS_FIELD_ID and .optionId == $REVIEW_OPTION_ID))
+            | .content.number
+          ' items.json | xargs)
+
+          echo "ISSUE_NUMBERS=$ISSUE_NUMBERS" >> $GITHUB_ENV
 
       - name: Summarize with Copilot
-        if: steps.get-issue.outputs.status == 'Review' && steps.get-issue.outputs.issue
+        if: env.ISSUE_NUMBERS != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ISSUE_NUMBER="${{ steps.get-issue.outputs.issue }}"
           REPO="${{ github.repository }}"
+          for ISSUE_NUMBER in $ISSUE_NUMBERS; do
+            # Skip if already summarized, e.g., check for a specific label or comment
+            SUMMARY_COMMENT=$(gh issue view $ISSUE_NUMBER --json comments --jq '.comments[].body' | grep '### Copilot Summary')
+            if [ -n "$SUMMARY_COMMENT" ]; then
+              echo "Issue #$ISSUE_NUMBER already summarized, skipping."
+              continue
+            fi
 
-          PRS=$(gh pr list --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
-
-          PR_URLS=""
-          for PR in $PRS; do
-            PR_URLS="$PR_URLS https://github.com/$REPO/pull/$PR"
+            PRS=$(gh pr list --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
+            PR_URLS=""
+            for PR in $PRS; do
+              PR_URLS="$PR_URLS https://github.com/$REPO/pull/$PR"
+            done
+            PROMPT="Summarize issue #$ISSUE_NUMBER and the following linked pull requests: $PR_URLS. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct."
+            gh copilot agent-task \
+              --issue "$ISSUE_NUMBER" \
+              --prompt "$PROMPT" \
+              --post-comment
           done
-
-          PROMPT="Summarize issue #$ISSUE_NUMBER and the following linked pull requests: $PR_URLS. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct."
-
-          gh copilot agent-task \
-            --issue "$ISSUE_NUMBER" \
-            --prompt "$PROMPT" \
-            --post-comment
