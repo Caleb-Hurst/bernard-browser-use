@@ -2,7 +2,7 @@ name: Summarize Issue and Linked PRs in Project Review
 
 on:
   schedule:
-    - cron: '* * * * *' # every minute; GitHub may delay runs
+    - cron: '* * * * *'
 
 jobs:
   summarize:
@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gh jq
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -55,6 +56,7 @@ jobs:
           ' items.json | xargs)
           echo "Extracted ISSUE_NUMBERS: '$ISSUE_NUMBERS'"
           echo "ISSUE_NUMBERS=$ISSUE_NUMBERS" >> $GITHUB_ENV
+
       - name: Summarize with OpenAI and comment
         if: env.ISSUE_NUMBERS != ''
         env:
@@ -77,6 +79,7 @@ jobs:
               PR_BODY=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body')
               PR_SUMMARIES="$PR_SUMMARIES\nPR #$PR: $PR_TITLE\n$PR_BODY\n"
             done
+
             PROMPT=$(cat <<EOF
 Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct.
 
