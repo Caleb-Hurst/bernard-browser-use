@@ -112,3 +112,4 @@ jobs:
               --post-comment
             echo "Adding 'copilot-reviewed' label to issue #$ISSUE_NUMBER"
             gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-reviewed"
+          done
