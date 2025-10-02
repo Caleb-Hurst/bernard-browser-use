@@ -20,7 +20,7 @@ jobs:
       - name: Find issues in Review status
         id: find-review-issues
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
           set -euo pipefail
 
