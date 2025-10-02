@@ -77,7 +77,6 @@ jobs:
               PR_BODY=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body')
               PR_SUMMARIES="$PR_SUMMARIES\nPR #$PR: $PR_TITLE\n$PR_BODY\n"
             done
-
             PROMPT=$(cat <<EOF
 Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct.
 
