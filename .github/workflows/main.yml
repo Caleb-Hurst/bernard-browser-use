@@ -96,10 +96,13 @@ jobs:
               }'
             )
 
-            SUMMARY=$(curl -s https://api.openai.com/v1/chat/completions \
+
+            RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
-              -d "$DATA" | jq -r '.choices[0].message.content')
+              -d "$DATA")
+            echo "OpenAI raw response: $RESPONSE"
+            SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
 
             gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "### OpenAI Summary\n$SUMMARY"
             gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-reviewed"
