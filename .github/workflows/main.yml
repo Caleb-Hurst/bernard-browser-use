@@ -123,5 +123,5 @@ jobs:
             # Replace literal \n with newlines for GitHub comment formatting
             COMMENT_BODY=$(echo -e "### OpenAI Summary\n$SUMMARY")
             gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$COMMENT_BODY"
-            gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-reviewed"
+            gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-summary"
           done
