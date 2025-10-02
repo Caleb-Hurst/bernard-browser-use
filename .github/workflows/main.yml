@@ -20,6 +20,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Copilot CLI extension
+        run: gh extension install github/gh-copilot
+        env:
+          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
+
       - name: Find issues in Review status
         env:
           GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
