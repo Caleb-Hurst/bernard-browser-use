@@ -70,10 +70,10 @@ jobs:
           cat items.json
 
           echo "---- Extracting issue numbers in Review status ----"
-          ISSUE_NUMBERS=$(jq -r --arg STATUS_FIELD_ID "$STATUS_FIELD_ID" --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
+          ISSUE_NUMBERS=$(jq -r --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
             .data.node.items.nodes[]
             | select(.fieldValues.nodes[]?
-                | select(.field.field.id == $STATUS_FIELD_ID and .optionId == $REVIEW_OPTION_ID))
+                | select(.optionId == $REVIEW_OPTION_ID))
             | .content.number
           ' items.json | xargs)
 
