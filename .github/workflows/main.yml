@@ -2,7 +2,7 @@ name: Summarize Issue and Linked PRs in Project Review
 
 on:
   schedule:
-    - cron: '* * * * *' # every 2 minutes
+    - cron: '* * * * *' # every minute
 
 jobs:
   summarize:
@@ -12,16 +12,18 @@ jobs:
       issues: write
       pull-requests: read
     steps:
-      - name: Set up GitHub CLI
+      - name: Set up GitHub CLI and jq
         run: |
           sudo apt-get update
-          sudo apt-get install gh -y
+          sudo apt-get install -y gh jq
 
       - name: Find issues in Review status
         id: find-review-issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
           PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
           STATUS_FIELD_ID="PVTSSF_lAHOBtn0hM4BEg5vzg2Hmgo"
           REVIEW_OPTION_ID="df73e18b"
@@ -31,12 +33,12 @@ jobs:
             query {
               node(id: "'$PROJECT_ID'") {
                 ... on ProjectV2 {
-                  items(first: 30) {
+                  items(first: 100) {
                     nodes {
                       content {
                         ... on Issue { number }
                       }
-                      fieldValues(first: 10) {
+                      fieldValues(first: 20) {
                         nodes {
                           ... on ProjectV2ItemFieldSingleSelectValue {
                             field {
@@ -44,6 +46,17 @@ jobs:
                             }
                             optionId
                           }
+                          ... on ProjectV2ItemFieldTextValue { __typename }
+                          ... on ProjectV2ItemFieldNumberValue { __typename }
+                          ... on ProjectV2ItemFieldDateValue { __typename }
+                          ... on ProjectV2ItemFieldIterationValue { __typename }
+                          ... on ProjectV2ItemFieldRepositoryValue { __typename }
+                          ... on ProjectV2ItemFieldUserValue { __typename }
+                          ... on ProjectV2ItemFieldLabelValue { __typename }
+                          ... on ProjectV2ItemFieldMilestoneValue { __typename }
+                          ... on ProjectV2ItemFieldPullRequestValue { __typename }
+                          ... on ProjectV2ItemFieldReviewerValue { __typename }
+                          ... on ProjectV2ItemFieldUnknownValue { __typename }
                         }
                       }
                     }
@@ -68,10 +81,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           REPO="${{ github.repository }}"
           for ISSUE_NUMBER in $ISSUE_NUMBERS; do
             # Skip if already summarized, e.g., check for a specific label or comment
-            SUMMARY_COMMENT=$(gh issue view $ISSUE_NUMBER --json comments --jq '.comments[].body' | grep '### Copilot Summary')
+            SUMMARY_COMMENT=$(gh issue view $ISSUE_NUMBER --json comments --jq '.comments[].body' | grep '### Copilot Summary' || true)
             if [ -n "$SUMMARY_COMMENT" ]; then
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
@@ -82,7 +96,9 @@ jobs:
             for PR in $PRS; do
               PR_URLS="$PR_URLS https://github.com/$REPO/pull/$PR"
             done
+
             PROMPT="Summarize issue #$ISSUE_NUMBER and the following linked pull requests: $PR_URLS. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct."
+
             gh copilot agent-task \
               --issue "$ISSUE_NUMBER" \
               --prompt "$PROMPT" \
