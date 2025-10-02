@@ -74,7 +74,7 @@ jobs:
           REPO="bernardhealth/bernard-browser-use"
           for ISSUE_NUMBER in $ISSUE_NUMBERS; do
             LABELS=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
-            if echo "$LABELS" | grep -q '^copilot-reviewed$'; then
+            if echo "$LABELS" | grep -q '^copilot-summary$'; then
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
             fi
