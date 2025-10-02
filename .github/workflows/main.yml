@@ -16,7 +16,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gh jq
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -26,7 +25,6 @@ jobs:
         run: |
           PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
           REVIEW_OPTION_ID="df73e18b"
-
           echo "---- Running GraphQL query to fetch Project items ----"
           gh api graphql -f query='
             query {
@@ -48,7 +46,6 @@ jobs:
               }
             }
           ' > items.json
-
           echo "---- Extracting issue numbers in Review status ----"
           ISSUE_NUMBERS=$(jq -r --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
             .data.node.items.nodes[]
@@ -56,7 +53,6 @@ jobs:
                 | select(.optionId == $REVIEW_OPTION_ID))
             | .content.number
           ' items.json | xargs)
-
           echo "Extracted ISSUE_NUMBERS: '$ISSUE_NUMBERS'"
           echo "ISSUE_NUMBERS=$ISSUE_NUMBERS" >> $GITHUB_ENV
 
@@ -73,24 +69,26 @@ jobs:
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
             fi
-
             ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title --jq '.title')
             ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body')
             PRS=$(gh pr list --repo "$REPO" --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
             PR_SUMMARIES=""
-
             for PR in $PRS; do
               PR_TITLE=$(gh pr view "$PR" --repo "$REPO" --json title --jq '.title')
               PR_BODY=$(gh pr view "$PR" --repo "$REPO" --json body --jq '.body')
               PR_SUMMARIES="$PR_SUMMARIES\nPR #$PR: $PR_TITLE\n$PR_BODY\n"
             done
 
-            PROMPT="Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct.
+            PROMPT=$(cat <<EOF
+Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct.
 
 Issue #$ISSUE_NUMBER: $ISSUE_TITLE
+
 $ISSUE_BODY
 
-$PR_SUMMARIES"
+$PR_SUMMARIES
+EOF
+)
 
             SUMMARY=$(curl -s https://api.openai.com/v1/chat/completions \
               -H "Content-Type: application/json" \
