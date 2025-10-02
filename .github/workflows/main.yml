@@ -22,9 +22,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PROJECT_ID="YOUR_PROJECT_NODE_ID"
-          STATUS_FIELD_ID="YOUR_STATUS_FIELD_NODE_ID"
-          REVIEW_OPTION_ID="YOUR_REVIEW_OPTION_NODE_ID"
+          PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
+          STATUS_FIELD_ID="PVTSSF_lAHOBtn0hM4BEg5vzg2Hmgo"
+          REVIEW_OPTION_ID="df73e18b"
 
           # Query all items in the project with "Review" status
           gh api graphql -f query='
