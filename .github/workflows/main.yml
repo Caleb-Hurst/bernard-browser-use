@@ -21,7 +21,7 @@ jobs:
 
       - name: Find issues in Review status
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
           PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
           REVIEW_OPTION_ID="df73e18b"
