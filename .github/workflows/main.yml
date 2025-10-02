@@ -17,12 +17,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh jq
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Find issues in Review status
         env:
           GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
-          set -euo pipefail
-
           PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
           STATUS_FIELD_ID="PVTSSF_lAHOBtn0hM4BEg5vzg2Hmgo"
           REVIEW_OPTION_ID="df73e18b"
@@ -86,18 +87,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
         run: |
-          set -euo pipefail
-          REPO="${{ github.repository }}"
+          REPO="bernardhealth/bernard-browser-use"
           echo "Starting Copilot summarization for ISSUES: $ISSUE_NUMBERS"
           for ISSUE_NUMBER in $ISSUE_NUMBERS; do
             echo "Processing issue #$ISSUE_NUMBER"
-            LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels --jq '.labels[].name')
+            LABELS=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json labels --jq '.labels[].name')
             echo "Labels for issue #$ISSUE_NUMBER: $LABELS"
             if echo "$LABELS" | grep -q '^copilot-reviewed$'; then
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
             fi
-            PRS=$(gh pr list --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
+            PRS=$(gh pr list --repo "$REPO" --search "#$ISSUE_NUMBER" --json number --jq '.[].number')
             echo "Linked PRs for issue #$ISSUE_NUMBER: $PRS"
             PR_URLS=""
             for PR in $PRS; do
@@ -106,9 +106,9 @@ jobs:
             PROMPT="Summarize issue #$ISSUE_NUMBER and the following linked pull requests: $PR_URLS. For each PR, summarize the main code changes and provide a test plan describing how to verify the implementation is correct."
             echo "Prompt for Copilot:\n$PROMPT"
             gh copilot agent-task \
+              --repo "$REPO" \
               --issue "$ISSUE_NUMBER" \
               --prompt "$PROMPT" \
               --post-comment
             echo "Adding 'copilot-reviewed' label to issue #$ISSUE_NUMBER"
-            gh issue edit "$ISSUE_NUMBER" --add-label "copilot-reviewed"
-          done
+            gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-reviewed"
