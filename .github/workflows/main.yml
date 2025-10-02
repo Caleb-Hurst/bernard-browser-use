@@ -2,7 +2,7 @@ name: Summarize Issue and Linked PRs in Project Review
 
 on:
   schedule:
-    - cron: '* * * * *' # every minute
+    - cron: '* * * * *' # every minute; GitHub may delay runs
 
 jobs:
   summarize:
@@ -12,7 +12,7 @@ jobs:
       issues: write
       pull-requests: read
     steps:
-      - name: Set up GitHub CLI and jq
+      - name: Install prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y gh jq
@@ -42,7 +42,9 @@ jobs:
                         nodes {
                           ... on ProjectV2ItemFieldSingleSelectValue {
                             field {
-                              id
+                              ... on ProjectV2Field {
+                                id
+                              }
                             }
                             optionId
                           }
@@ -69,7 +71,7 @@ jobs:
           ISSUE_NUMBERS=$(jq -r --arg STATUS_FIELD_ID "$STATUS_FIELD_ID" --arg REVIEW_OPTION_ID "$REVIEW_OPTION_ID" '
             .data.node.items.nodes[]
             | select(.fieldValues.nodes[]?
-                | select(.field.id == $STATUS_FIELD_ID and .optionId == $REVIEW_OPTION_ID))
+                | select(.field.field.id == $STATUS_FIELD_ID and .optionId == $REVIEW_OPTION_ID))
             | .content.number
           ' items.json | xargs)
 
@@ -84,7 +86,7 @@ jobs:
           REPO="${{ github.repository }}"
           for ISSUE_NUMBER in $ISSUE_NUMBERS; do
             # Skip if already summarized, e.g., check for a specific label or comment
-            SUMMARY_COMMENT=$(gh issue view $ISSUE_NUMBER --json comments --jq '.comments[].body' | grep '### Copilot Summary' || true)
+            SUMMARY_COMMENT=$(gh issue view "$ISSUE_NUMBER" --json comments --jq '.comments[].body' | grep '### Copilot Summary' || true)
             if [ -n "$SUMMARY_COMMENT" ]; then
               echo "Issue #$ISSUE_NUMBER already summarized, skipping."
               continue
