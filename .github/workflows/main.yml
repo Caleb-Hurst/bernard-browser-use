@@ -21,7 +21,7 @@ jobs:
 
       - name: Find issues in Review status
         env:
-          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PROJECT_ID="PVT_kwHOBtn0hM4BEg5v"
           REVIEW_OPTION_ID="df73e18b"
@@ -59,7 +59,7 @@ jobs:
       - name: Summarize with OpenAI and comment
         if: env.ISSUE_NUMBERS != ''
         env:
-          GH_TOKEN: ${{ secrets.BERNARD_BROWSER_AGENT_SUMMARY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           # DEBUG: Check if OPENAI_API_KEY is available and not empty
@@ -94,7 +94,12 @@ jobs:
             echo "DEBUG: ISSUE_BODY=$ISSUE_BODY"
             echo -e "DEBUG: PR_SUMMARIES=$PR_SUMMARIES"
 
-            PROMPT="Summarize the following GitHub issue and its linked PRs. For each PR, summarize the main code changes and provide a bullet-point test plan describing how to verify the implementation is correct.\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY\n\n$PR_SUMMARIES keep it as short as possible"
+            # Concise prompt and only mention PRs if present
+            if [ -z "$PR_SUMMARIES" ]; then
+              PROMPT="Summarize the following GitHub issue in as few words as possible for a project changelog:\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY"
+            else
+              PROMPT="Summarize the following GitHub issue and all of its linked PRs in as few words as possible for a project changelog. If there are multiple PRs, summarize them together concisely:\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY\n\n$PR_SUMMARIES"
+            fi
 
             DATA=$(jq -n \
               --arg prompt "$PROMPT" \
