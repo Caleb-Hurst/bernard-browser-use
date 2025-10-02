@@ -94,11 +94,11 @@ jobs:
             echo "DEBUG: ISSUE_BODY=$ISSUE_BODY"
             echo -e "DEBUG: PR_SUMMARIES=$PR_SUMMARIES"
 
-            # Concise prompt and only mention PRs if present
+            # Concise prompt and only mention PRs if present, always add bullet-point test plan request
             if [ -z "$PR_SUMMARIES" ]; then
-              PROMPT="Summarize the following GitHub issue in as few words as possible for a QA test engineer changelog:\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY"
+              PROMPT="Summarize the following GitHub issue in as few words as possible for a QA test engineer changelog. End your response with a bullet-point test plan for QA:\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY"
             else
-              PROMPT="Summarize the following GitHub issue and all of its linked PRs in as few words as possible for a QA test engineer. If there are multiple PRs, summarize them together concisely:\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY\n\n$PR_SUMMARIES"
+              PROMPT="Summarize the following GitHub issue and all of its linked PRs in as few words as possible for a QA test engineer. If there are multiple PRs, summarize them together concisely. End your response with a bullet-point test plan for QA:\n\nIssue #$ISSUE_NUMBER: $ISSUE_TITLE\n\n$ISSUE_BODY\n\n$PR_SUMMARIES"
             fi
 
             DATA=$(jq -n \
@@ -120,6 +120,8 @@ jobs:
             echo "OpenAI raw response: $RESPONSE"
             SUMMARY=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
 
-            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "### OpenAI Summary\n$SUMMARY"
+            # Replace literal \n with newlines for GitHub comment formatting
+            COMMENT_BODY=$(echo -e "### OpenAI Summary\n$SUMMARY")
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$COMMENT_BODY"
             gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "copilot-reviewed"
           done
