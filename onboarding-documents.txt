@@ -1,0 +1,404 @@
+# Onboarding Documents - What They Are, Where They Are, and How to Use Them
+
+This guide explains the onboarding document system in BerniePortal, including document types, locations, configuration, and usage for testing engineers.
+
+## Document System Overview
+
+BerniePortal's onboarding system manages various types of documents that new hires must complete during the onboarding process. These documents range from federal tax forms to state-specific withholding forms and custom employer documents.
+
+## Document Categories and Types
+
+### 1. Federal Standard Documents
+
+#### W-4 (Federal Tax Withholding)
+- **Template ID**: 3
+- **File Prefix**: `w4`
+- **Purpose**: Federal income tax withholding allowances
+- **Required For**: All employees
+- **Location**: Generated through document templates system
+
+#### I-9 (Employment Eligibility Verification)
+- **Template ID**: 2
+- **File Prefix**: `i9`
+- **Purpose**: Verify employee's eligibility to work in the United States
+- **Required For**: All employees
+- **Location**: Generated through document templates system
+- **Special Note**: May integrate with E-Verify system
+
+#### W-9 (Tax Identification)
+- **Template ID**: 1
+- **File Prefix**: `w9`
+- **Purpose**: Request taxpayer identification number
+- **Required For**: Contractors/specific employee types
+- **Location**: Generated through document templates system
+
+#### Direct Deposit Form
+- **Template ID**: 4
+- **File Prefix**: `dd`
+- **Purpose**: Bank account information for payroll deposits
+- **Required For**: Employees opting for direct deposit
+- **Location**: Generated through document templates system
+
+### 2. State Withholding Documents
+
+#### Configuration Location
+- **File Path**: `/config/onboarding/documents/{state_code}.php`
+- **Example**: `/config/onboarding/documents/mi.php` (Michigan)
+- **Category ID**: 5 (STATE_WITHHOLDING_CATEGORY_ID)
+
+#### Supported States
+State withholding forms are available for all states listed in the `DocumentTemplate::STATE_WITHHOLDING_TEMPLATES` constant:
+
+**Available State Forms:**
+- Alabama (AL), Arizona (AZ), Arkansas (AR), California (CA)
+- Colorado (CO), Connecticut (CT), Delaware (DE), District of Columbia (DC)
+- Georgia (GA), Hawaii (HI), Idaho (ID), Illinois (IL)
+- Indiana (IN), Iowa (IA), Kansas (KS), Kentucky (KY)
+- Louisiana (LA), Maine (ME), Maryland (MD), Massachusetts (MA)
+- Michigan (MI), Minnesota (MN), Mississippi (MS), Missouri (MO)
+- Montana (MT), Nebraska (NE), New Jersey (NJ), New York (NY)
+- North Carolina (NC), Ohio (OH), Oklahoma (OK), Oregon (OR)
+- Pennsylvania (PA), Puerto Rico (PR), Rhode Island (RI)
+- South Carolina (SC), Virginia (VA), Wisconsin (WI)
+
+#### State Form Configuration Example (Michigan)
+```php
+// config/onboarding/documents/mi.php
+return [
+    'Employee Information' => [
+        [
+            'name' => 'dr_license',
+            'type' => 'text',
+            'label' => 'Driver License or State ID',
+        ],
+        [
+            'name' => 'new_employee',
+            'type' => 'radio',
+            'label' => 'Are you a new employee?',
+            'options' => [
+                '1' => 'Yes',
+                '2' => 'No',
+            ],
+        ],
+    ],
+    'Withholding Information' => [
+        // Additional form fields...
+    ],
+];
+```
+
+### 3. Custom Documents
+
+#### Category ID Range
+- **Custom Categories**: Start at 1000 (CUSTOM_CATEGORY_ID_START)
+- **Purpose**: Employer-specific documents and forms
+- **Management**: Through Document Categories settings
+
+#### Custom Document Limitations
+- **Time Limit**: 30 days (CUSTOM_ONBOARDING_DOCUMENTS_ADD_DAYS_LIMIT)
+- **Purpose**: Prevents indefinite document assignment delays
+
+## Document Storage and Management
+
+### Database Tables
+
+#### Document Templates Table
+- **Table Name**: `onboard_document_templates`
+- **Primary Key**: `sid`
+- **Key Fields**:
+  - `dtid`: Document template identifier
+  - `title`: Document title
+  - `template`: HTML template content
+  - `category`: Category classification
+  - `signature_required`: Boolean for signature requirement
+  - `set_for_default`: Default assignment flag
+
+#### Document Categories
+- **Management**: Through `DocumentCategoriesRepository`
+- **API Endpoint**: `/api/onboarding-document-categories`
+- **Purpose**: Organize documents into logical groups
+
+### File System Locations
+
+#### Vue Components
+- **Primary Location**: `/resources/assets/components/onboarding/new-hire/documents.vue`
+- **Document Generator**: `/resources/assets/components/employer/onboarding/document-generator/`
+- **Document Library**: `/resources/assets/components/employer/onboarding/document-library/`
+
+#### Controllers
+- **Document Generator**: `/app/Http/Controllers/Onboarding/DocumentGeneratorController.php`
+- **Document Library**: `/app/Http/Controllers/Onboarding/DocumentLibraryController.php`
+- **Mass Assignment**: `/app/Http/Controllers/Onboarding/MassAssignDocumentsController.php`
+- **Document Categories**: `/app/Http/Controllers/Onboarding/DocumentCategoriesController.php`
+
+#### Models and Repositories
+- **Document Template**: `/app/Onboarding/DocumentTemplate.php`
+- **Document Repository**: `/app/Onboarding/OnboardDocumentRepository.php`
+- **Templates Repository**: `/app/Onboarding/DocumentTemplatesRepository.php`
+
+#### Configuration Files
+- **State Forms**: `/config/onboarding/documents/{state}.php`
+- **Routes**: `/routes/web/onboarding.php`
+
+## How to Access and Use Documents
+
+### 1. Document Library Access
+
+#### Navigation Path
+1. Login with employer or feature admin permissions
+2. Navigate to **Onboarding** → **Documents** → **Document Library**
+3. **URL**: `/onboarding/documents/document-library`
+
+#### Functionality
+- View all available document templates
+- Manage document categories
+- Edit existing documents
+- Preview document templates
+
+### 2. Document Generator
+
+#### Navigation Path
+1. Navigate to **Onboarding** → **Documents** → **Create New Document**
+2. **URL**: `/onboarding/documents/document-generator`
+
+#### Key Features
+- Create new document templates
+- Map custom fields to documents
+- Set document properties (signature requirements, defaults)
+- Configure document categories
+
+### 3. Document Mapping
+
+#### Navigation Path
+1. Navigate to **Onboarding** → **Documents** → **Map Documents**
+2. **URL**: `/onboarding/documents/map-documents`
+
+#### Purpose
+- Map broker form fields to document templates
+- Configure dynamic field population
+- Set up document auto-fill capabilities
+
+#### Available Fields API
+- **Endpoint**: `/api/broker-form-fields`
+- **Purpose**: Get available fields for document mapping
+- **Usage**: Drag-and-drop field mapping interface
+
+### 4. Mass Document Assignment
+
+#### Navigation Path
+1. Navigate to **Onboarding** → **Documents** → **Mass Assign**
+2. **URL**: `/onboarding/documents/mass-assign`
+
+#### Functionality
+- Assign documents to multiple employees simultaneously
+- Bulk document management
+- Efficient onboarding for large groups
+
+## Document Workflow and Usage
+
+### 1. New Hire Document Assignment
+
+#### Automatic Assignment
+When creating a new hire, documents are automatically assigned based on:
+- **Federal Requirements**: W-4, I-9 always assigned
+- **State Requirements**: State withholding forms based on employee location
+- **Employer Defaults**: Custom documents marked as default
+- **Category Rules**: Documents assigned by category configuration
+
+#### Manual Assignment
+Documents can also be manually assigned through:
+- New hire creation form
+- Document library management
+- Mass assignment tools
+
+### 2. Document Completion Process
+
+#### Employee Experience
+1. Employee receives onboarding email with login instructions
+2. Employee logs into onboarding portal
+3. Employee completes assigned documents in sequence
+4. Documents require electronic signature (if configured)
+5. Completed documents are stored and made available to employer
+
+#### Document States
+- **Assigned**: Document assigned but not started
+- **In Progress**: Employee has started but not completed
+- **Completed**: Document finished and signed (if required)
+- **Approved**: Employer/admin has reviewed and approved
+
+### 3. PDF Generation and Storage
+
+#### PDF Creation
+- Documents are converted to PDF format upon completion
+- PDFs include all form data and electronic signatures
+- Generated using Dompdf library integration
+
+#### Storage Location
+- PDFs stored using Laravel's Storage facade
+- File organization by employer and employee
+- Secure access controls applied
+
+## Testing Document Functionality
+
+### Test Case 1: Document Library Management
+
+#### Steps to Test
+1. **Access Document Library**:
+   - Navigate to Onboarding → Documents → Document Library
+   - Verify all document templates are visible
+   - Check category organization
+
+2. **Document Properties**:
+   - Verify signature requirements are displayed
+   - Check default assignment flags
+   - Test document preview functionality
+
+3. **Category Management**:
+   - Access document categories settings
+   - Test category creation/modification
+   - Verify category assignment to documents
+
+### Test Case 2: Document Generator
+
+#### Steps to Test
+1. **Create New Document**:
+   - Access document generator
+   - Test template creation interface
+   - Verify HTML editor functionality
+
+2. **Field Mapping**:
+   - Navigate to Map Documents
+   - Test drag-and-drop field mapping
+   - Verify field mappings save correctly
+
+3. **Document Configuration**:
+   - Set signature requirements
+   - Configure default assignment
+   - Test category assignment
+
+### Test Case 3: State-Specific Documents
+
+#### Steps to Test
+1. **State Form Assignment**:
+   - Create new hire in state with withholding requirements
+   - Verify appropriate state form is assigned
+   - Test with multiple different states
+
+2. **State Form Configuration**:
+   - Check state configuration files exist
+   - Verify form field definitions are correct
+   - Test state-specific field types (text, radio, checkbox)
+
+3. **State Form Completion**:
+   - Complete state withholding form as employee
+   - Verify all required fields are validated
+   - Test form submission and PDF generation
+
+### Test Case 4: Custom Documents
+
+#### Steps to Test
+1. **Custom Document Creation**:
+   - Create custom document category (ID 1000+)
+   - Add custom document template
+   - Configure custom field mappings
+
+2. **Custom Document Assignment**:
+   - Assign custom documents to new hires
+   - Test mass assignment functionality
+   - Verify custom documents appear in employee onboarding
+
+3. **Custom Document Time Limits**:
+   - Test 30-day limit for custom document addition
+   - Verify system prevents assignment after limit
+   - Test error handling for expired assignments
+
+## Document API Endpoints
+
+### Document Management APIs
+- `GET /api/onboarding-document-categories` - Get all document categories
+- `GET /api/broker-form-fields` - Get available fields for mapping
+- Document template CRUD operations (various endpoints)
+
+### Document Assignment APIs
+- `POST /api/onboarding/mass-assign-documents` - Mass assign documents
+- Employee document assignment endpoints
+
+### Document Generation APIs
+- `GET /api/employers/{employerId}/new-hire/login-instruction-pdf/{employeeId}` - Generate login PDF
+- PDF generation endpoints for completed documents
+
+## Troubleshooting Common Document Issues
+
+### Issue: Document Not Assigned to New Hire
+**Possible Causes:**
+- Document not marked as default for category
+- State configuration missing for employee's location
+- Custom document past assignment time limit
+
+**Solution:**
+- Check document default settings
+- Verify state configuration files
+- Manually assign through document management
+
+### Issue: Document Fields Not Populating
+**Possible Causes:**
+- Field mapping not configured
+- Broker form fields not available
+- Template mapping errors
+
+**Solution:**
+- Check document mapping configuration
+- Verify broker form fields API response
+- Test field mappings in document generator
+
+### Issue: PDF Generation Failing
+**Possible Causes:**
+- Template HTML errors
+- Missing form data
+- Dompdf configuration issues
+
+**Solution:**
+- Validate document template HTML
+- Check form completion status
+- Review PDF generation logs
+
+### Issue: Signature Requirements Not Working
+**Possible Causes:**
+- Signature requirement not set on template
+- Electronic signature integration issues
+- Browser compatibility problems
+
+**Solution:**
+- Verify signature_required flag in template
+- Test with different browsers
+- Check electronic signature service status
+
+## Document Security and Permissions
+
+### Access Control
+- Document access controlled by employer/feature admin permissions
+- Employee can only access their assigned documents
+- Document completion tracked and audited
+
+### Data Protection
+- All document data encrypted in transit and at rest
+- Secure file storage with access controls
+- Audit logging for document access and modifications
+
+### Compliance Considerations
+- I-9 forms may integrate with E-Verify
+- State withholding forms comply with state requirements
+- Document retention policies as per regulations
+
+## Notes for QA Engineers
+
+1. **State Testing**: Test with employees from various states to ensure proper state form assignment
+2. **Document Types**: Test all document types (text, radio, checkbox, dropdown)
+3. **Signature Flow**: Verify electronic signature process works end-to-end
+4. **PDF Quality**: Check generated PDFs for completeness and formatting
+5. **Performance**: Test document loading and generation performance with large numbers of documents
+6. **Browser Compatibility**: Test document completion across different browsers
+7. **Mobile Testing**: Verify document functionality works on mobile devices
+8. **Error Handling**: Test error scenarios (network issues, incomplete forms, etc.)
+9. **Integration Testing**: Test document system integration with other onboarding components
+10. **Data Validation**: Verify all form validation rules work correctly

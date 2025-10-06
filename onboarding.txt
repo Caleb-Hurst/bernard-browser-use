@@ -1,0 +1,206 @@
+# Onboarding - How to Onboard People
+
+This guide provides detailed steps for testing engineers to understand how to access and use the onboarding functionality in BerniePortal.
+
+## Access Requirements
+
+To access onboarding features, users must have either:
+- **Employer** role (group admin access)
+- **Feature Admin** role with onboarding permissions
+
+The onboarding functionality is protected by the `require-group-admin.access` middleware, which maps to the `IsEmployerOrFeatureAdmin` middleware class.
+
+## Navigation Structure
+
+The onboarding system follows this navigation hierarchy:
+
+```
+Primary Navigation: Onboarding
+├── Secondary Navigation:
+│   ├── Pending (onboarding/pendings)
+│   ├── Documents (onboarding/documents/document-generator)
+│   └── Settings (onboarding/settings/document-categories)
+│
+└── Tertiary Navigation (under Documents):
+    ├── Create New Document (document-generator)
+    ├── Document Library (document-library)
+    ├── Mass Assign (mass-assign)
+    └── Map Documents (map-documents)
+```
+
+## How to Access Onboarding Features
+
+
+### Step 2: Navigate to Onboarding Section
+1. From the main navigation, click on **"Onboarding"**
+2. This will open the onboarding dashboard
+
+### Step 3: Access Different Onboarding Functions
+
+#### A. Pending Onboarding (View/Manage Pending Hires)
+- **URL Pattern**: `/onboarding/pendings` (for employers) or `/feature-admin/onboarding/pendings` (for feature admins)
+- **Purpose**: View and manage employees who haven't completed their onboarding process
+- **Access**: Click "Pending" in the secondary navigation
+
+#### B. Document Management
+- **URL Pattern**: `/onboarding/documents/document-generator`
+- **Purpose**: Create, manage, and configure onboarding documents
+- **Access**: Click "Documents" in the secondary navigation
+
+#### C. Settings/Configuration
+- **URL Pattern**: `/onboarding/settings/document-categories`
+- **Purpose**: Configure document categories and onboarding settings
+- **Access**: Click "Settings" in the secondary navigation
+
+## Onboarding a New Hire
+
+### Step 1: Create New Hire
+1. Navigate to the employer section
+2. Use the new hire endpoint: `POST /api/employers/{employerId}/new-hire`
+3. **Prerequisites**: The `refactor-onboard-new-hire` feature toggle must be enabled
+4. **Required Data**: Employee personal information, compensation details, effective dates
+
+### Step 2: New Hire Process Flow
+The system processes new hires through several components:
+
+1. **Personal Information** (`info.vue`)
+   - Basic employee details (name, address, contact info)
+   - Employee ID assignment (auto-generated or manual)
+
+2. **Documents** (`documents.vue`)
+   - Assign required onboarding documents based on categories
+   - State-specific withholding forms (W4, state tax forms)
+   - Custom document templates
+
+3. **Payroll Information** (`payroll.vue`)
+   - Compensation details
+   - Direct deposit setup
+   - Tax withholding preferences
+
+4. **Benefits & Effective Dates** (`benefit-effective-dates.vue`)
+   - Benefit enrollment effective dates
+   - Plan selections
+
+5. **Subgroups** (`subgroups.vue`)
+   - Assign employee to appropriate subgroups/departments
+
+6. **Approvers** (`approvers.vue`)
+   - Set up PTO approvers and management hierarchy
+
+7. **Checklist** (`checklist.vue`)
+   - Onboarding task checklist and completion tracking
+
+### Step 3: Document Generation and Assignment
+1. **Access Document Generator**:
+   - Navigate to Onboarding → Documents → Create New Document
+   - URL: `/onboarding/documents/document-generator`
+
+2. **Document Library Management**:
+   - Navigate to Onboarding → Documents → Document Library
+   - URL: `/onboarding/documents/document-library`
+   - View and manage existing document templates
+
+3. **Mass Document Assignment**:
+   - Navigate to Onboarding → Documents → Mass Assign
+   - URL: `/onboarding/documents/mass-assign`
+   - Assign documents to multiple employees at once
+
+## Available Document Types
+
+### Standard Federal Forms
+1. **W-9** (Template ID: 1) - Tax identification
+2. **I-9** (Template ID: 2) - Employment eligibility verification
+3. **W-4** (Template ID: 3) - Federal tax withholding
+4. **Direct Deposit** (Template ID: 4) - Banking information
+
+### State Withholding Forms
+The system supports state-specific withholding forms for these states:
+- Alabama (AL), Arizona (AZ), Arkansas (AR), California (CA)
+- Colorado (CO), Connecticut (CT), Delaware (DE), District of Columbia (DC)
+- Georgia (GA), Hawaii (HI), Idaho (ID), Illinois (IL)
+- Indiana (IN), Iowa (IA), Kansas (KS), Kentucky (KY)
+- Louisiana (LA), Maine (ME), Maryland (MD), Massachusetts (MA)
+- Michigan (MI), Minnesota (MN), Mississippi (MS), Missouri (MO)
+- Montana (MT), Nebraska (NE), New Jersey (NJ), New York (NY)
+- North Carolina (NC), Ohio (OH), Oklahoma (OK), Oregon (OR)
+- Pennsylvania (PA), Puerto Rico (PR), Rhode Island (RI)
+- South Carolina (SC), Virginia (VA), Wisconsin (WI)
+
+### Custom Documents
+- **Category ID Range**: 1000+ for custom categories
+- **Purpose**: Employer-specific forms and documents
+- **Configuration**: Through document categories settings
+
+## Testing Scenarios
+
+### Test Case 1: Basic New Hire Onboarding
+1. Login as employer/feature admin
+2. Navigate to new hire creation
+3. Fill out employee information form
+4. Assign required documents (W-4, I-9, state forms if applicable)
+5. Set up payroll information
+6. Configure benefit effective dates
+7. Assign to subgroups
+8. Set approvers
+9. Generate onboarding checklist
+10. Verify employee receives onboarding email
+
+### Test Case 2: Document Management
+1. Login with appropriate permissions
+2. Navigate to Onboarding → Documents → Document Library
+3. Verify existing document templates are visible
+4. Navigate to Create New Document
+5. Test document mapping functionality
+6. Test mass assignment features
+
+### Test Case 3: State-Specific Requirements
+1. Create new hire for employee in a state with withholding requirements
+2. Verify appropriate state forms are automatically assigned
+3. Test document completion and PDF generation
+4. Verify state-specific field mappings work correctly
+
+### Test Case 4: Permission Testing
+1. Test access with employer role
+2. Test access with feature admin role
+3. Test access denial with employee-only role
+4. Verify proper error handling for unauthorized access
+
+## Troubleshooting Common Issues
+
+### Access Denied (401 Unauthorized)
+- **Cause**: User lacks employer or feature admin permissions
+- **Solution**: Verify user role and permissions in the system
+
+### Feature Toggle Not Enabled
+- **Cause**: `refactor-onboard-new-hire` toggle is disabled
+- **Solution**: Enable the feature toggle or test with legacy onboarding flow
+
+### Document Generation Errors
+- **Cause**: Missing document templates or configuration
+- **Solution**: Verify document templates exist and are properly configured
+
+### State Form Issues
+- **Cause**: State withholding configuration missing
+- **Solution**: Check state configuration files in `config/onboarding/documents/`
+
+## API Endpoints for Testing
+
+### New Hire Management
+- `GET /api/employers/{employerId}/new-hire/next` - Get next employee ID
+- `POST /api/employers/{employerId}/new-hire` - Create new hire
+- `GET /api/employers/{employerId}/new-hire/login-instruction-pdf/{employeeId}` - Download login PDF
+
+### Document Management
+- `GET /api/onboarding-document-categories` - Get document categories
+- `GET /api/broker-form-fields` - Get available form fields for mapping
+- Various document template and assignment endpoints
+
+## Notes for QA Engineers
+
+1. **Feature Toggles**: Many onboarding features are behind toggles - verify which toggles are active
+2. **State Variations**: Test with employees from different states to verify state-specific forms
+3. **Permission Matrix**: Test with different user roles to ensure proper access controls
+4. **Document Dependencies**: Some documents have dependencies on others - test the complete flow
+5. **Email Notifications**: Verify that onboarding emails are sent and contain correct information
+6. **PDF Generation**: Test document PDF generation and ensure forms are properly filled
+7. **Mobile Compatibility**: Test onboarding flows on mobile devices if applicable

@@ -23,7 +23,6 @@ chrome_profile/
 
 # Data files
 *.gif
-*.txt
 *.pdf
 *.csv
 *.json
