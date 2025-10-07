@@ -3,8 +3,13 @@ import re
 import os
 import asyncio
 import requests
+from project_issues import get_project_issues
 from dotenv import load_dotenv
-from issue_project_status import PROJECT_UNIQUE_ID, COLUMN_ID, request_headers
+
+load_dotenv()
+
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+REPO = "bernardhealth/bernieportal"
 
 def extract_final_result(output):
     # This regex matches 'Final Result:' and everything after it
@@ -18,108 +23,22 @@ def extract_final_result(output):
         result = re.sub(r'^Check \.\/tmp\/recordings.*$', '', result, flags=re.MULTILINE)
         # Remove any extra blank lines
         result = re.sub(r'\n+', '\n', result)
+
         return result.strip()
 
     return "No final result found."
 
-def make_collapsible(full_output):
-    # Remove ANSI color codes
+def collapse_output(full_output):
     clean = re.sub(r'\x1b\[[0-9;]*m', '', full_output)
-    return f"<details><summary>Full agent output (click to expand)</summary>\n\n```\n{clean}\n```\n</details>"
 
-# Load environment variables from .env file
-load_dotenv()
+    return (
+        f"<details><summary>Full agent output (click to expand)</summary>\n\n"
+        f"```\n"
+        f"{clean}\n"
+        f"```\n"
+        f"</details>"
+    )
 
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-REPO = "bernardhealth/bernieportal"  # Change if needed
-
-
-
-def get_project_issues():
-    """Fetch all project issues, their status, and labels in one GraphQL query (with pagination)."""
-    query = '''
-    query($projectId: ID!, $after: String) {
-        node(id: $projectId) {
-            ... on ProjectV2 {
-                items(first: 100, after: $after) {
-                    nodes {
-                        content {
-                            ... on Issue {
-                                id
-                                number
-                                state
-                                body
-                                labels(first: 20) {
-                                    nodes { name }
-                                }
-                                comments(last: 10) {
-                                    nodes {
-                                        author { login }
-                                        body
-                                        createdAt
-                                    }
-                                }
-                            }
-                        }
-                        fieldValues(first: 20) {
-                            nodes {
-                                ... on ProjectV2ItemFieldSingleSelectValue {
-                                    optionId
-                                }
-                            }
-                        }
-                    }
-                    pageInfo { hasNextPage endCursor }
-                }
-            }
-        }
-    }
-    '''
-    variables = {"projectId": PROJECT_UNIQUE_ID, "after": None}
-    issues = []
-    while True:
-        resp = requests.post(
-            "https://api.github.com/graphql",
-            headers=request_headers,
-            json={"query": query, "variables": variables}
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        items = data["data"]["node"]["items"]["nodes"]
-        for item in items:
-            content = item.get("content")
-            if not content or content.get("state") != "OPEN":
-                continue
-            # Find if this item is in the desired column
-            in_column = False
-            for field_value in item["fieldValues"]["nodes"]:
-                if field_value.get("optionId") == COLUMN_ID:
-                    in_column = True
-                    break
-            if not in_column:
-                continue
-            labels = [l["name"] for l in content.get("labels", {}).get("nodes", [])]
-            comments = [
-                {
-                    "author": c["author"]["login"] if c["author"] else None,
-                    "body": c["body"],
-                    "createdAt": c["createdAt"]
-                }
-                for c in content.get("comments", {}).get("nodes", [])
-            ]
-            issues.append({
-                "body": content.get("body", ""),
-                "number": content.get("number"),
-                "node_id": content.get("id"),
-                "labels": labels,
-                "comments": comments
-            })
-        page_info = data["data"]["node"]["items"]["pageInfo"]
-        if page_info["hasNextPage"]:
-            variables["after"] = page_info["endCursor"]
-        else:
-            break
-    return issues
 def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
     """
     Returns the body of the first comment mentioning the bot after the last test comment by the bot.
@@ -165,7 +84,7 @@ async def run_agent_for_issue(desc, number):
     stdout, _ = await process.communicate()
     output = stdout.decode()
     final_result = extract_final_result(output)
-    collapsible = make_collapsible(output)
+    collapsible = collapse_output(output)
     video_url = extract_video_url(output)
     video_link = f"\n\n▶️ [View Test Video Here]({video_url})" if video_url else ""
     comment = f"✅ Test run complete!\n\n**Result:**\n{final_result}{video_link}\n\n{collapsible}"
@@ -174,10 +93,10 @@ async def run_agent_for_issue(desc, number):
 
 async def main():
     issues = get_project_issues()
-    semaphore = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time (adjust as needed)
+    concurrency_limiter = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time (adjust as needed)
 
-    async def run_with_semaphore(desc, number):
-        async with semaphore:
+    async def run_with_concurrency_limit(desc, number):
+        async with concurrency_limiter:
             await run_agent_for_issue(desc, number)
 
     agent_tasks = []
@@ -194,7 +113,7 @@ async def main():
         if not node_id:
             print(f"[SKIP] Issue #{number} missing node_id, skipping.")
             continue
-        agent_tasks.append(run_with_semaphore(desc, number))
+        agent_tasks.append(run_with_concurrency_limit(desc, number))
 
     if agent_tasks:
         await asyncio.gather(*agent_tasks)

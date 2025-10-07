@@ -1,11 +1,13 @@
 import sys
 import os
 import asyncio
+import requests
+import glob
+import re
 from pathlib import Path
 from context_loader import load_context_from_labels
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
-import requests
-import glob
+from browser_use.browser.profile import ViewportSize
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
@@ -110,9 +112,8 @@ async def main():
     if issue_number and f"@Caleb-Hurst" in task:
         is_change_request = True
 
-    # Fetch the last test result (last comment by Caleb-Hurst)
+    # Fetch the last test result (last comment by Caleb-Hurst) this will change later
     def extract_result_section(comment_body):
-        import re
         # Try to extract the section after 'Result:' and before the next section (e.g., '▶️' or 'Full agent output')
         match = re.search(r'Result:(.*?)(?:\n▶️|\nFull agent output|\n\s*\n|$)', comment_body, re.DOTALL | re.IGNORECASE)
         if match:
@@ -120,6 +121,7 @@ async def main():
         return None
 
     last_test_result = None
+
     if issue_number:
         url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
         resp = requests.get(url, headers=headers)
@@ -151,7 +153,7 @@ async def main():
 
     # Set up headless browser profile with matching window, viewport, and video size
     width, height = 1920, 1280
-    from browser_use.browser.profile import ViewportSize
+
     profile = BrowserProfile(
         headless=True,
         window_size=ViewportSize(width=width, height=height),
