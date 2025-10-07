@@ -1,209 +1,102 @@
-import sys
-import os
 import asyncio
+import sys
 from pathlib import Path
-from context_loader import load_context_from_labels
+
+from bernard.constants import (
+	DEFAULT_CHROME_PROFILE_DIRECTORY,
+	DEFAULT_LOGIN_PASSWORD,
+	DEFAULT_LOGIN_USERNAME,
+	DEFAULT_MODEL,
+	DEFAULT_VIDEO_HEIGHT,
+	DEFAULT_VIDEO_WIDTH,
+	MAX_AGENT_STEPS,
+)
+from bernard.github_interactions import get_issue_comments_for_change_request, update_issue_labels
+from bernard.video import process_and_upload_video
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
-import requests
-import glob
-
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-REPO = "bernardhealth/bernieportal"
-TAG_NAME = "video-uploads"
-
-headers = {
-    "Authorization": f"token {GITHUB_TOKEN}",
-    "Accept": "application/vnd.github+json"
-}
-
-def get_or_create_release():
-    url = f"https://api.github.com/repos/{REPO}/releases/tags/{TAG_NAME}"
-    r = requests.get(url, headers=headers)
-
-    if r.status_code == 200:
-        return r.json()["id"], r.json()["upload_url"]
-
-    # If not found, create it
-    url = f"https://api.github.com/repos/{REPO}/releases"
-    data = {
-        "tag_name": TAG_NAME,
-        "name": "Video Uploads",
-        "body": "Automated video uploads",
-        "draft": False,
-        "prerelease": False
-    }
-
-    r = requests.post(url, headers=headers, json=data)
-    r.raise_for_status()
-
-    return r.json()["id"], r.json()["upload_url"]
-
-def get_latest_github_actions_comment(issue_number):
-    """Fetch the most recent comment by the github-actions bot for the given issue."""
-    url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
-    resp = requests.get(url, headers=headers)
-    resp.raise_for_status()
-    comments = resp.json()
-    # github-actions bot username is 'github-actions[bot]'
-    actions_comments = [c for c in comments if c.get("user", {}).get("login") == "github-actions[bot]"]
-    if not actions_comments:
-        return None
-    # Return the body of the most recent comment
-    return sorted(actions_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
-
-def upload_asset(upload_url, file_path):
-    upload_url = upload_url.split("{")[0]
-    params = {"name": os.path.basename(file_path)}
-    headers_asset = headers.copy()
-    headers_asset["Content-Type"] = "video/mp4"
-
-    with open(file_path, "rb") as f:
-        r = requests.post(upload_url, headers=headers_asset, params=params, data=f)
-    r.raise_for_status()
-
-    return r.json()["browser_download_url"]
+from browser_use.browser.profile import ViewportSize
+from context_loader import load_context_from_labels
 
 
-def update_labels(issue_number):
-    url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}"
-    headers_labels = headers.copy()
+async def main() -> None:
+	"""
+	Main function to run the Bernard QA agent for browser-based testing.
+	Handles argument parsing, browser setup, agent execution, and video processing.
+	"""
+	# Parse command line arguments
+	task = sys.argv[1] if len(sys.argv) > 1 else ''
+	issue_number = sys.argv[2] if len(sys.argv) > 2 else None
+	user_data_directory = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_CHROME_PROFILE_DIRECTORY
+	labels = sys.argv[4].split(',') if len(sys.argv) > 4 else []
 
-    # Get current labels
-    resp = requests.get(url, headers=headers_labels)
-    resp.raise_for_status()
-    labels = [l['name'] for l in resp.json().get('labels', [])]
+	# Build system directions
+	login_username = DEFAULT_LOGIN_USERNAME
+	login_password = DEFAULT_LOGIN_PASSWORD
+	system_directions = (
+		f"YOU ARE THE MANUAL QA TEST ENGINEER. "
+		f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. "
+		f"DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY. "
+		f"Go to https://staging.bernieportal.com. If you are not already logged in, log in first using "
+		f"username: {login_username}, password: {login_password}. "
+		f"Once logged in, continue to the following task. Your job is to verify that something either "
+		f"works or does not work and REPORT the result. "
+		f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
+	)
 
-    # Remove 'needs-test' if present, add 'tested-by-bernard-agent'
-    labels = [l for l in labels if l != 'needs-test']
+	# Determine if this is a change request (tagged comment)
+	is_change_request = False
+	if issue_number and "@Caleb-Hurst" in task:
+		is_change_request = True
 
-    if 'ai-tested' not in labels:
-        labels.append('ai-tested')
+	# Build the full task prompt
+	if is_change_request:
+		last_test_result = get_issue_comments_for_change_request(issue_number)
+		if last_test_result:
+			full_task = (
+				f"{system_directions}\n\n"
+				f"This is a CHANGE REQUEST based on the following feedback from the last test run.\n"
+				f"---\nLAST TEST RESULT (Result section only):\n{last_test_result}\n---\n"
+				f"Please address the following change request:\n{task}"
+			)
+		else:
+			full_task = f"{system_directions}\n\n{task}"
+	else:
+		full_task = f"{system_directions}\n\n{task}"
 
-    # Update labels
-    resp = requests.patch(url, headers=headers_labels, json={"labels": labels})
-    resp.raise_for_status()
+	# Load context from label-matching .txt files
+	context = load_context_from_labels(labels, context_dir=Path(__file__).parent)
 
-async def main():
-    # Get login info and directions from environment variables (set in workflow or locally)
+	# Set up browser profile with video recording
+	browser_profile = BrowserProfile(
+		headless=True,
+		window_size=ViewportSize(width=DEFAULT_VIDEO_WIDTH, height=DEFAULT_VIDEO_HEIGHT),
+		viewport=ViewportSize(width=DEFAULT_VIDEO_WIDTH, height=DEFAULT_VIDEO_HEIGHT),
+		user_data_dir=user_data_directory,
+		args=[f'--window-size={DEFAULT_VIDEO_WIDTH},{DEFAULT_VIDEO_HEIGHT}']
+	)
 
-    login_username = 'alyssak@admin316.com'
-    login_password = 'Testing123!'
-    directions = (
-        f"YOU ARE THE MANUAL QA TEST ENGINEER. "
-        f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
-        f"Go to https://staging.bernieportal.com. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
-        f"Once logged in, continue to the following task. Your job is to verify that something either works or does not work and REPORT the result. "
-        f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
-    )
+	browser_session = Browser(
+		browser_profile=browser_profile,
+		record_video_dir=Path('./tmp/recordings'),
+		record_video_size={'width': DEFAULT_VIDEO_WIDTH, 'height': DEFAULT_VIDEO_HEIGHT}
+	)
 
-    # Accept issue number as second argument
-    issue_number = sys.argv[2] if len(sys.argv) > 2 else None
+	# Create and run the agent
+	agent = Agent(
+		task=full_task,
+		llm=ChatOpenAI(model=DEFAULT_MODEL),
+		extend_system_message=context,
+		browser_session=browser_session,
+	)
 
-    # Accept the task (prompt) as first argument
-    task = sys.argv[1] if len(sys.argv) > 1 else ''
+	await agent.run(max_steps=MAX_AGENT_STEPS)
 
-    # Accept user_data_dir as third argument (for unique browser profile)
-    user_data_dir = sys.argv[3] if len(sys.argv) > 3 else './chrome_profile'
-
-    # Determine if this is a change request (tagged comment)
-    is_change_request = False
-    if issue_number and f"@Caleb-Hurst" in task:
-        is_change_request = True
-
-    # Fetch the last test result (last comment by Caleb-Hurst)
-    def extract_result_section(comment_body):
-        import re
-        # Try to extract the section after 'Result:' and before the next section (e.g., '▶️' or 'Full agent output')
-        match = re.search(r'Result:(.*?)(?:\n▶️|\nFull agent output|\n\s*\n|$)', comment_body, re.DOTALL | re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-        return None
-
-    last_test_result = None
-    if issue_number:
-        url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
-        resp = requests.get(url, headers=headers)
-        resp.raise_for_status()
-        comments = resp.json()
-        # Find the most recent comment by Caleb-Hurst
-        caleb_comments = [c for c in comments if c.get("user", {}).get("login") == "Caleb-Hurst"]
-        if caleb_comments:
-            last_comment_body = sorted(caleb_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
-            last_test_result = extract_result_section(last_comment_body)
-
-    # Build the full prompt
-    if is_change_request and last_test_result:
-        full_task = (
-            f"{directions}\n\n"
-            f"This is a CHANGE REQUEST based on the following feedback from the last test run.\n"
-            f"---\nLAST TEST RESULT (Result section only):\n{last_test_result}\n---\n"
-            f"Please address the following change request:\n{task}"
-        )
-    else:
-        full_task = f"{directions}\n\n{task}"
-
-
-    # Accept labels as fourth argument (comma-separated string)
-    labels = sys.argv[4].split(',') if len(sys.argv) > 4 else []
-
-    # Load context from all label-matching .txt files
-    context = load_context_from_labels(labels, context_dir=Path(__file__).parent)
-
-    # Set up headless browser profile with matching window, viewport, and video size
-    width, height = 1920, 1280
-    from browser_use.browser.profile import ViewportSize
-    profile = BrowserProfile(
-        headless=True,
-        window_size=ViewportSize(width=width, height=height),
-        viewport=ViewportSize(width=width, height=height),
-        user_data_dir=user_data_dir,
-        args=[f'--window-size={width},{height}']
-    )
-    browser_session = Browser(
-        browser_profile=profile,
-        record_video_dir=Path('./tmp/recordings'),
-        record_video_size={'width': width, 'height': height}
-    )
-
-    agent = Agent(
-        task=full_task,
-        llm=ChatOpenAI(model='gpt-4.1-mini'),
-        extend_system_message=context,
-        browser_session=browser_session,
-    )
-
-    await agent.run(max_steps=50)
-
-    # Explicitly finalize the video recording if possible
-    # Try both browser_session and agent.browser_session for compatibility
-    video_recorder = None
-    if hasattr(browser_session, "video_recorder"):
-        video_recorder = getattr(browser_session, "video_recorder")
-    elif hasattr(agent, "browser_session") and hasattr(agent.browser_session, "video_recorder"):
-        video_recorder = getattr(agent.browser_session, "video_recorder")
-    if video_recorder:
-        try:
-            video_recorder.stop_and_save()
-        except Exception as e:
-            print(f"[WARN] Failed to finalize video recording: {e}")
-
-    # Find the latest video file in ./tmp/recordings
-    video_files = glob.glob('./tmp/recordings/*.mp4')
-    if video_files:
-        latest_video = max(video_files, key=os.path.getmtime)
-        print(f'Uploading video: {latest_video}')
-        release = get_or_create_release()
-        if release:
-            release_id, upload_url = release
-            video_url = upload_asset(upload_url, latest_video)
-            print(f'Video uploaded! Download URL: {video_url}')
-            print(f'VIDEO_URL::{video_url}')
-            if issue_number:
-                update_labels(issue_number)
-        else:
-            print('Failed to get or create release, skipping video upload.')
-    else:
-        print('No video file found to upload.')
+	# Process and upload video
+	video_url = process_and_upload_video(browser_session, agent, issue_number)
+	
+	# Update issue labels if video was successfully uploaded
+	if video_url and issue_number:
+		update_issue_labels(issue_number)
 
 if __name__ == '__main__':
     asyncio.run(main())

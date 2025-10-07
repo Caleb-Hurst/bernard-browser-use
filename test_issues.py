@@ -1,10 +1,13 @@
 
-import re
-import os
 import asyncio
-import requests
+import re
+import tempfile
+
 from dotenv import load_dotenv
-from issue_project_status import PROJECT_UNIQUE_ID, COLUMN_ID, request_headers
+
+from bernard.github_interactions import comment_on_issue, get_project_issues, get_tagged_comment_after_last_test
+from bernard.video import extract_video_url_from_output
+
 
 def extract_final_result(output):
     # This regex matches 'Final Result:' and everything after it
@@ -30,174 +33,81 @@ def make_collapsible(full_output):
 # Load environment variables from .env file
 load_dotenv()
 
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-REPO = "bernardhealth/bernieportal"  # Change if needed
 
 
 
-def get_project_issues():
-    """Fetch all project issues, their status, and labels in one GraphQL query (with pagination)."""
-    query = '''
-    query($projectId: ID!, $after: String) {
-        node(id: $projectId) {
-            ... on ProjectV2 {
-                items(first: 100, after: $after) {
-                    nodes {
-                        content {
-                            ... on Issue {
-                                id
-                                number
-                                state
-                                body
-                                labels(first: 20) {
-                                    nodes { name }
-                                }
-                                comments(last: 10) {
-                                    nodes {
-                                        author { login }
-                                        body
-                                        createdAt
-                                    }
-                                }
-                            }
-                        }
-                        fieldValues(first: 20) {
-                            nodes {
-                                ... on ProjectV2ItemFieldSingleSelectValue {
-                                    optionId
-                                }
-                            }
-                        }
-                    }
-                    pageInfo { hasNextPage endCursor }
-                }
-            }
-        }
-    }
-    '''
-    variables = {"projectId": PROJECT_UNIQUE_ID, "after": None}
-    issues = []
-    while True:
-        resp = requests.post(
-            "https://api.github.com/graphql",
-            headers=request_headers,
-            json={"query": query, "variables": variables}
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        items = data["data"]["node"]["items"]["nodes"]
-        for item in items:
-            content = item.get("content")
-            if not content or content.get("state") != "OPEN":
-                continue
-            # Find if this item is in the desired column
-            in_column = False
-            for field_value in item["fieldValues"]["nodes"]:
-                if field_value.get("optionId") == COLUMN_ID:
-                    in_column = True
-                    break
-            if not in_column:
-                continue
-            labels = [l["name"] for l in content.get("labels", {}).get("nodes", [])]
-            comments = [
-                {
-                    "author": c["author"]["login"] if c["author"] else None,
-                    "body": c["body"],
-                    "createdAt": c["createdAt"]
-                }
-                for c in content.get("comments", {}).get("nodes", [])
-            ]
-            issues.append({
-                "body": content.get("body", ""),
-                "number": content.get("number"),
-                "node_id": content.get("id"),
-                "labels": labels,
-                "comments": comments
-            })
-        page_info = data["data"]["node"]["items"]["pageInfo"]
-        if page_info["hasNextPage"]:
-            variables["after"] = page_info["endCursor"]
-        else:
-            break
-    return issues
-def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
-    """
-    Returns the body of the first comment mentioning the bot after the last test comment by the bot.
-    """
-    last_test_time = None
-    # Find the most recent test comment by the bot
-    for c in reversed(comments):
-        if c["author"] == bot_username:
-            last_test_time = c["createdAt"]
-            break
-    # Now look for a comment mentioning the bot after last_test_time
-    for c in comments:
-        if f"@{bot_username}" in c["body"]:
-            if last_test_time is None or c["createdAt"] > last_test_time:
-                return c["body"]
-    return None
-
-
-def comment_on_issue(issue_number, message):
-    url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-    resp = requests.post(url, json={"body": message}, headers=headers)
-    resp.raise_for_status()
-
-
-def extract_video_url(output):
-    match = re.search(r'VIDEO_URL::(https?://\S+)', output)
-    if match:
-        return match.group(1)
-    return None
 
 
 
-async def run_agent_for_issue(desc, number):
-    import tempfile
-    temp_dir = tempfile.mkdtemp(prefix=f'browser_agent_{number}_')
-    print(f"Running agent for issue #{number} with profile {temp_dir}...")
-    process = await asyncio.create_subprocess_exec(
-        "python", "run_bernard_qa_agent.py", desc, str(number), temp_dir,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT
-    )
-    stdout, _ = await process.communicate()
-    output = stdout.decode()
-    final_result = extract_final_result(output)
-    collapsible = make_collapsible(output)
-    video_url = extract_video_url(output)
-    video_link = f"\n\n▶️ [View Test Video Here]({video_url})" if video_url else ""
-    comment = f"✅ Test run complete!\n\n**Result:**\n{final_result}{video_link}\n\n{collapsible}"
-    comment_on_issue(number, comment)
-    print(f"Commented on issue #{number}.")
+async def run_agent_for_issue(description: str, issue_number: str) -> None:
+	"""
+	Run the Bernard QA agent for a specific issue and post results as a comment.
+	
+	Args:
+		description: Issue description or tagged comment to process
+		issue_number: GitHub issue number
+	"""
+	temporary_directory = tempfile.mkdtemp(prefix=f'browser_agent_{issue_number}_')
+	print(f"Running agent for issue #{issue_number} with profile {temporary_directory}...")
+	
+	process = await asyncio.create_subprocess_exec(
+		"python", "run_bernard_qa_agent.py", description, str(issue_number), temporary_directory,
+		stdout=asyncio.subprocess.PIPE,
+		stderr=asyncio.subprocess.STDOUT
+	)
+	
+	stdout, _ = await process.communicate()
+	output = stdout.decode()
+	
+	final_result = extract_final_result(output)
+	collapsible_output = make_collapsible(output)
+	video_url = extract_video_url_from_output(output)
+	
+	video_link = f"\n\n▶️ [View Test Video Here]({video_url})" if video_url else ""
+	comment_message = f"✅ Test run complete!\n\n**Result:**\n{final_result}{video_link}\n\n{collapsible_output}"
+	
+	comment_on_issue(issue_number, comment_message)
+	print(f"Commented on issue #{issue_number}.")
 
-async def main():
-    issues = get_project_issues()
-    semaphore = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time (adjust as needed)
+async def main() -> None:
+	"""
+	Main function to orchestrate testing of project issues.
+	Fetches issues, processes them concurrently, and manages test execution.
+	"""
+	issues = get_project_issues()
+	concurrency_semaphore = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time
 
-    async def run_with_semaphore(desc, number):
-        async with semaphore:
-            await run_agent_for_issue(desc, number)
+	async def run_with_concurrency_limit(description: str, issue_number: str) -> None:
+		"""Run agent with concurrency limiting."""
+		async with concurrency_semaphore:
+			await run_agent_for_issue(description, issue_number)
 
-    agent_tasks = []
-    for issue in issues:
-        # Skip if issue has the 'ai-tested' label
-        if 'ai-tested' in [l.lower() for l in issue.get('labels', [])]:
-            print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label, skipping.")
-            continue
-        # Check for tagged comment after last test
-        tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []), "Caleb-Hurst")
-        desc = tagged_comment if tagged_comment else issue["body"]
-        number = issue["number"]
-        node_id = issue.get("node_id")
-        if not node_id:
-            print(f"[SKIP] Issue #{number} missing node_id, skipping.")
-            continue
-        agent_tasks.append(run_with_semaphore(desc, number))
+	agent_tasks = []
+	
+	for issue in issues:
+		issue_number = issue["number"]
+		issue_labels = [label.lower() for label in issue.get('labels', [])]
+		
+		# Skip if issue has the 'ai-tested' label
+		if 'ai-tested' in issue_labels:
+			print(f"[SKIP] Issue #{issue_number} has 'ai-tested' label, skipping.")
+			continue
+		
+		# Check for tagged comment after last test
+		tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []))
+		description = tagged_comment if tagged_comment else issue["body"]
+		
+		node_id = issue.get("node_id")
+		if not node_id:
+			print(f"[SKIP] Issue #{issue_number} missing node_id, skipping.")
+			continue
+		
+		agent_tasks.append(run_with_concurrency_limit(description, issue_number))
 
-    if agent_tasks:
-        await asyncio.gather(*agent_tasks)
+	if agent_tasks:
+		await asyncio.gather(*agent_tasks)
+	else:
+		print("No issues found to process.")
 
 
 

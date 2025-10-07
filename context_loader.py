@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+
 def load_context_from_labels(labels, context_dir=None):
     """
     Given a list of labels, load and concatenate context from matching .txt files.
