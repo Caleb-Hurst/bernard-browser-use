@@ -27,19 +27,19 @@ load_dotenv()
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO = "bernardhealth/bernieportal"
 
+"""
+Extract the final result section from agent output.
+
+Parses the agent's output text to find and extract the "Final Result:" section,
+cleaning up ANSI color codes and log lines to return just the essential result.
+
+Args:
+    output (str): Raw output text from the browser automation agent
+    
+Returns:
+    str: Cleaned final result text, or "No final result found." if not found
+"""
 def extract_final_result(output):
-    """
-    Extract the final result section from agent output.
-    
-    Parses the agent's output text to find and extract the "Final Result:" section,
-    cleaning up ANSI color codes and log lines to return just the essential result.
-    
-    Args:
-        output (str): Raw output text from the browser automation agent
-        
-    Returns:
-        str: Cleaned final result text, or "No final result found." if not found
-    """
     # This regex matches 'Final Result:' and everything after it
     match = re.search(r'Final Result:(.*?)(?=\[?INFO\]?|\[?ERROR\]?|\[?WARNING\]?|\[?DEBUG\]?|$)', output, re.DOTALL)
     if match:
@@ -56,19 +56,19 @@ def extract_final_result(output):
 
     return "No final result found."
 
+"""
+Format full agent output as a collapsible markdown section.
+
+Takes the complete agent output and wraps it in a GitHub markdown
+collapsible section for clean presentation in comments.
+
+Args:
+    full_output (str): Complete agent output text
+    
+Returns:
+    str: Formatted markdown with collapsible details section
+"""
 def collapse_output(full_output):
-    """
-    Format full agent output as a collapsible markdown section.
-    
-    Takes the complete agent output and wraps it in a GitHub markdown
-    collapsible section for clean presentation in comments.
-    
-    Args:
-        full_output (str): Complete agent output text
-        
-    Returns:
-        str: Formatted markdown with collapsible details section
-    """
     clean = re.sub(r'\x1b\[[0-9;]*m', '', full_output)
 
     return (
@@ -79,10 +79,10 @@ def collapse_output(full_output):
         f"</details>"
     )
 
+"""
+Returns the body of the first comment mentioning the bot after the last test comment by the bot.
+"""
 def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
-    """
-    Returns the body of the first comment mentioning the bot after the last test comment by the bot.
-    """
     last_test_time = None
     # Find the most recent test comment by the bot
     for c in reversed(comments):
@@ -97,38 +97,38 @@ def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
     return None
 
 
+"""
+Post a comment to a GitHub issue.
+
+Uses the GitHub API to add a comment to the specified issue with the provided message.
+
+Args:
+    issue_number (int): GitHub issue number to comment on
+    message (str): Comment body text to post
+    
+Raises:
+    requests.exceptions.HTTPError: If the GitHub API request fails
+"""
 def comment_on_issue(issue_number, message):
-    """
-    Post a comment to a GitHub issue.
-    
-    Uses the GitHub API to add a comment to the specified issue with the provided message.
-    
-    Args:
-        issue_number (int): GitHub issue number to comment on
-        message (str): Comment body text to post
-        
-    Raises:
-        requests.exceptions.HTTPError: If the GitHub API request fails
-    """
     url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
     resp = requests.post(url, json={"body": message}, headers=headers)
     resp.raise_for_status()
 
 
+"""
+Extract video URL from agent output.
+
+Searches for a VIDEO_URL:: pattern in the agent output and extracts the URL.
+This is used to find uploaded test recording videos.
+
+Args:
+    output (str): Agent output text to search
+    
+Returns:
+    str or None: The extracted video URL, or None if not found
+"""
 def extract_video_url(output):
-    """
-    Extract video URL from agent output.
-    
-    Searches for a VIDEO_URL:: pattern in the agent output and extracts the URL.
-    This is used to find uploaded test recording videos.
-    
-    Args:
-        output (str): Agent output text to search
-        
-    Returns:
-        str or None: The extracted video URL, or None if not found
-    """
     match = re.search(r'VIDEO_URL::(https?://\S+)', output)
     if match:
         return match.group(1)
@@ -136,24 +136,24 @@ def extract_video_url(output):
 
 
 
+"""
+Run the browser automation agent for a specific GitHub issue.
+
+Executes the bernard QA agent script for the given issue, processes the output,
+and posts the results back to the GitHub issue as a comment. Creates a temporary
+directory for the browser profile to ensure isolation between test runs.
+
+Args:
+    desc (str): Issue description or test instructions
+    number (int): GitHub issue number
+    
+Side Effects:
+    - Creates temporary directory for browser profile
+    - Executes subprocess for agent script
+    - Posts comment to GitHub issue
+    - Prints progress messages to stdout
+"""
 async def run_agent_for_issue(desc, number):
-    """
-    Run the browser automation agent for a specific GitHub issue.
-    
-    Executes the bernard QA agent script for the given issue, processes the output,
-    and posts the results back to the GitHub issue as a comment. Creates a temporary
-    directory for the browser profile to ensure isolation between test runs.
-    
-    Args:
-        desc (str): Issue description or test instructions
-        number (int): GitHub issue number
-        
-    Side Effects:
-        - Creates temporary directory for browser profile
-        - Executes subprocess for agent script
-        - Posts comment to GitHub issue
-        - Prints progress messages to stdout
-    """
     import tempfile
     temp_dir = tempfile.mkdtemp(prefix=f'browser_agent_{number}_')
     print(f"Running agent for issue #{number} with profile {temp_dir}...")
@@ -172,21 +172,21 @@ async def run_agent_for_issue(desc, number):
     comment_on_issue(number, comment)
     print(f"Commented on issue #{number}.")
 
+"""
+Main entry point for automated issue testing.
+
+Fetches issues from the project board, filters out already tested issues,
+and runs concurrent browser automation tests. Uses a semaphore to limit
+concurrent execution and prevent resource exhaustion.
+
+Flow:
+    1. Fetch issues from project board
+    2. Filter out issues with 'ai-tested' label
+    3. Check for tagged comments for retesting
+    4. Execute tests concurrently with rate limiting
+    5. Handle results via individual agent runs
+"""
 async def main():
-    """
-    Main entry point for automated issue testing.
-    
-    Fetches issues from the project board, filters out already tested issues,
-    and runs concurrent browser automation tests. Uses a semaphore to limit
-    concurrent execution and prevent resource exhaustion.
-    
-    Flow:
-        1. Fetch issues from project board
-        2. Filter out issues with 'ai-tested' label
-        3. Check for tagged comments for retesting
-        4. Execute tests concurrently with rate limiting
-        5. Handle results via individual agent runs
-    """
     issues = get_project_issues()
     concurrency_limiter = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time (adjust as needed)
 
