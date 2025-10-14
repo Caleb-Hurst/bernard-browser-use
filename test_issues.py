@@ -135,7 +135,6 @@ def extract_video_url(output):
     return None
 
 
-
 """
 Run the browser automation agent for a specific GitHub issue.
 
@@ -153,12 +152,13 @@ Side Effects:
     - Posts comment to GitHub issue
     - Prints progress messages to stdout
 """
-async def run_agent_for_issue(desc, number):
+async def run_agent_for_issue(desc, number, labels_arg):
     import tempfile
     temp_dir = tempfile.mkdtemp(prefix=f'browser_agent_{number}_')
     print(f"Running agent for issue #{number} with profile {temp_dir}...")
+    # labels_arg will be passed in as an argument
     process = await asyncio.create_subprocess_exec(
-        "python", "run_bernard_qa_agent.py", desc, str(number), temp_dir,
+        "python", "run_bernard_qa_agent.py", desc, str(number), temp_dir, labels_arg,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT
     )
@@ -190,9 +190,9 @@ async def main():
     issues = get_project_issues()
     concurrency_limiter = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time (adjust as needed)
 
-    async def run_with_concurrency_limit(desc, number):
+    async def run_with_concurrency_limit(desc, number, labels_arg):
         async with concurrency_limiter:
-            await run_agent_for_issue(desc, number)
+            await run_agent_for_issue(desc, number, labels_arg)
 
     agent_tasks = []
     for issue in issues:
@@ -208,7 +208,8 @@ async def main():
         if not node_id:
             print(f"[SKIP] Issue #{number} missing node_id, skipping.")
             continue
-        agent_tasks.append(run_with_concurrency_limit(desc, number))
+        labels_arg = ",".join(issue.get("labels", []))
+        agent_tasks.append(run_with_concurrency_limit(desc, number, labels_arg))
 
     if agent_tasks:
         await asyncio.gather(*agent_tasks)
