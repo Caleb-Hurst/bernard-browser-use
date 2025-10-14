@@ -8,7 +8,7 @@ def load_context_from_labels(labels, context_dir=None):
     Returns a string with all context joined by two newlines.
     """
     if context_dir is None:
-        context_dir = Path(__file__).parent
+        context_dir = Path(__file__).parent / "context"
     context_parts = []
     for label in labels:
         context_path = Path(context_dir) / f"{label}.txt"
