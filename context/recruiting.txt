@@ -1,0 +1,65 @@
+# Recruiting Platform Context
+
+## Accessing Recruiting
+The recruiting platform can be accessed globally from the top navigation bar. Look for the section titled **RECRUITING** in the top nav to enter the recruiting area at any time.
+
+## Overview
+Our recruiting platform streamlines the process of attracting, evaluating, and hiring candidates. It is designed to support HR teams, hiring managers, and candidates throughout the recruitment lifecycle.
+
+## Layout
+Our recruiting platform features a secondary navigation bar with the following main sections:
+- **Job List**
+- **Candidates**
+- **Settings**
+
+Below is a breakdown of what you can do in each section:
+
+---
+
+### Job List
+Shows all jobs (open, closed, draft).
+- Click a job title to view its details.
+
+### Job Details
+Accessed by clicking a job title. Main features:
+1. **Candidates** – View all candidates for this job.
+2. **Messages** – Communicate with candidates.
+3. **Edit Job** – Modify job details.
+4. **Sharing** – Get a link to view or apply for the job.
+
+**Buttons:**
+- **Guided Walkthrough**: Launches a step-by-step guide for using the job list features.
+- **Create New Job**: Opens the job creation wizard.
+
+**Job Creation Wizard Steps:**
+1. **Information**: Enter basic job info.
+2. **Details**: Add job-specific details.
+3. **Questions**: Set up screening/interview questions.
+4. **Documents**: Attach relevant documents.
+5. **Team**: Assign team members to the job.
+6. **Review**: Final review before publishing.
+
+**Table:**
+- Displays all jobs with filters for open, closed, or draft status.
+
+---
+
+### Candidates Tab
+This section shows all candidates and their current status in the hiring process. You can:
+- View candidate profiles
+- Track progress through hiring stages
+- See which job(s) each candidate has applied for
+
+---
+
+### Settings Tab
+The Settings section is accessible via a left-hand navigation bar and includes:
+- **Hiring Stages**: Set the default hiring stages for all jobs. Stages can be edited per job, but new stages can only be created here.
+- **Message Templates**: Manage templates for communication with candidates.
+- **Question Library**: Store and manage reusable interview/screening questions.
+- **Email**: Configure email settings for notifications and communication.
+- **Careers Page**: Customize the public-facing careers page.
+
+---
+
+*Add any platform-specific details, terminology, or workflows below:*
