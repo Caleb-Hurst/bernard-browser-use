@@ -1,3 +1,19 @@
+"""
+Bernard QA Agent Runner
+
+This module coordinates automated QA testing using browser automation agents. It handles
+the complete lifecycle of QA test execution including:
+- Loading contextual information from labels
+- Setting up browser automation with proper configurations
+- Executing QA tests on staging environments
+- Recording test sessions as videos
+- Uploading test artifacts to GitHub releases
+- Updating issue labels and posting results
+
+The agent acts as a manual QA engineer, logging into staging environments and
+executing test scenarios defined in GitHub issues.
+"""
+
 import sys
 import os
 import asyncio
@@ -19,6 +35,19 @@ headers = {
 }
 
 def get_or_create_release():
+    """
+    Get existing GitHub release or create a new one for video uploads.
+    
+    Attempts to retrieve an existing release with the configured tag name.
+    If no release exists, creates a new one specifically for storing
+    test video uploads as assets.
+    
+    Returns:
+        tuple: (release_id, upload_url) for the GitHub release
+        
+    Raises:
+        requests.exceptions.HTTPError: If GitHub API requests fail
+    """
     url = f"https://api.github.com/repos/{REPO}/releases/tags/{TAG_NAME}"
     r = requests.get(url, headers=headers)
 
@@ -54,6 +83,22 @@ def get_latest_github_actions_comment(issue_number):
     return sorted(actions_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
 
 def upload_asset(upload_url, file_path):
+    """
+    Upload a video file as a GitHub release asset.
+    
+    Takes a local video file and uploads it to the specified GitHub release
+    as an asset that can be downloaded publicly.
+    
+    Args:
+        upload_url (str): GitHub release upload URL template
+        file_path (str): Local path to the video file to upload
+        
+    Returns:
+        str: Public download URL for the uploaded asset
+        
+    Raises:
+        requests.exceptions.HTTPError: If the upload fails
+    """
     upload_url = upload_url.split("{")[0]
     params = {"name": os.path.basename(file_path)}
     headers_asset = headers.copy()
@@ -67,6 +112,18 @@ def upload_asset(upload_url, file_path):
 
 
 def update_labels(issue_number):
+    """
+    Update GitHub issue labels after test completion.
+    
+    Removes 'needs-test' label and adds 'ai-tested' label to indicate
+    that automated testing has been completed for this issue.
+    
+    Args:
+        issue_number (int): GitHub issue number to update
+        
+    Raises:
+        requests.exceptions.HTTPError: If GitHub API requests fail
+    """
     url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}"
     headers_labels = headers.copy()
 
@@ -86,6 +143,22 @@ def update_labels(issue_number):
     resp.raise_for_status()
 
 async def main():
+    """
+    Main entry point for QA agent execution.
+    
+    Coordinates the complete QA testing workflow:
+    1. Parses command line arguments for task, issue number, and browser profile
+    2. Loads contextual information based on issue labels
+    3. Sets up browser automation with proper viewport and recording
+    4. Executes the QA agent with appropriate prompts and context
+    5. Handles video recording, upload, and GitHub API updates
+    
+    Command line arguments:
+        sys.argv[1]: Task description or test instructions
+        sys.argv[2]: GitHub issue number (optional)
+        sys.argv[3]: Browser profile directory (optional)
+        sys.argv[4]: Comma-separated labels for context loading (optional)
+    """
     # Get login info and directions from environment variables (set in workflow or locally)
 
     login_username = 'alyssak@admin316.com'

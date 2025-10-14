@@ -1,3 +1,14 @@
+"""
+Context Loader Module
+
+This module provides functionality to load contextual information from text files
+based on issue labels. It's designed to supply background information to browser
+automation agents by reading label-specific context files from the filesystem.
+
+The primary use case is to enhance AI agent prompts with relevant domain-specific
+information before executing automated QA tests or other browser tasks.
+"""
+
 import os
 from pathlib import Path
 
