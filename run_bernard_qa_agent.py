@@ -221,9 +221,9 @@ async def main():
         resp.raise_for_status()
         comments = resp.json()
         # Find the most recent comment by BOT_USERNAME
-        caleb_comments = [c for c in comments if c.get("user", {}).get("login") == BOT_USERNAME]
-        if caleb_comments:
-            last_comment_body = sorted(caleb_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
+        bot_comments = [c for c in comments if c.get("user", {}).get("login") == BOT_USERNAME]
+        if bot_comments:
+            last_comment_body = sorted(bot_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
             last_test_result = extract_result_section(last_comment_body)
 
     # Build the full prompt
