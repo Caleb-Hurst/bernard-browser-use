@@ -28,7 +28,7 @@ load_dotenv()
 
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO = "bernardhealth/bernieportal"
-BOT_USERNAME = "Caleb-Hurst"
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "Caleb-Hurst")
 
 """
 Extract the final result section from agent output.

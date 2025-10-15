@@ -30,7 +30,7 @@ from context_loader import load_context_from_labels
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
 TAG_NAME = "video-uploads"
-BOT_USERNAME = "Caleb-Hurst"
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "Caleb-Hurst")
 
 headers = {
     "Authorization": f"token {GITHUB_TOKEN}",
