@@ -116,7 +116,7 @@ def upload_asset(upload_url, file_path):
 """
 Update GitHub issue labels after test completion.
 
-Removes 'needs-test' and 'testing-in-progress' labels and adds 'ai-tested' 
+Removes 'testing-in-progress' label and adds 'ai-tested' 
 label to indicate that automated testing has been completed for this issue.
 
 Args:
@@ -134,8 +134,8 @@ def update_labels(issue_number):
     resp.raise_for_status()
     labels = [label['name'] for label in resp.json().get('labels', [])]
 
-    # Remove 'needs-test' and 'testing-in-progress' if present, add 'ai-tested'
-    labels = [label for label in labels if label not in ['needs-test', 'testing-in-progress']]
+    # Remove 'testing-in-progress' if present, add 'ai-tested'
+    labels = [label for label in labels if label != 'testing-in-progress']
 
     if 'ai-tested' not in labels:
         labels.append('ai-tested')

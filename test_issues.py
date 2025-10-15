@@ -135,17 +135,17 @@ def add_testing_in_progress_label(issue_number):
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
     
     # Get current labels
-    resp = requests.get(url, headers=headers)
-    resp.raise_for_status()
-    labels = [label['name'] for label in resp.json().get('labels', [])]
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    labels = [label['name'] for label in response.json().get('labels', [])]
     
     # Add 'testing-in-progress' if not already present
     if 'testing-in-progress' not in labels:
         labels.append('testing-in-progress')
         
         # Update labels
-        resp = requests.patch(url, headers=headers, json={"labels": labels})
-        resp.raise_for_status()
+        response = requests.patch(url, headers=headers, json={"labels": labels})
+        response.raise_for_status()
         print(f"[LABEL] Added 'testing-in-progress' label to issue #{issue_number}")
 
 
@@ -221,14 +221,14 @@ Flow:
 """
 async def main():
     issues = get_project_issues()
-    concurrency_limiter = asyncio.Semaphore(5)  # Limit concurrency to 5 agents at a time (adjust as needed)
+    concurrency_limiter = asyncio.Semaphore(3)
 
     async def run_with_concurrency_limit(desc, number, labels_arg):
         async with concurrency_limiter:
             await run_agent_for_issue(desc, number, labels_arg)
 
     agent_tasks = []
-    max_concurrent_issues = 5  # Match the concurrency limiter to prevent over-queuing
+    max_concurrent_issues = 3  # Match the concurrency limiter to prevent over-queuing
     processed_count = 0
     
     for issue in issues:
@@ -236,7 +236,6 @@ async def main():
         if processed_count >= max_concurrent_issues:
             print(f"[LIMIT] Reached maximum of {max_concurrent_issues} concurrent issues, stopping.")
             break
-            
         # Skip if issue has the 'ai-tested' label
         if 'ai-tested' in [label.lower() for label in issue.get('labels', [])]:
             print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label, skipping.")
