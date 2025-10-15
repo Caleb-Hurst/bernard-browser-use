@@ -196,9 +196,9 @@ async def main():
     # Accept user_data_dir as third argument (for unique browser profile)
     user_data_dir = sys.argv[3] if len(sys.argv) > 3 else './chrome_profile'
 
-    # Determine if this is a change request (tagged comment)
+    # Determine if this is a change request (based on changes-requested label)
     is_change_request = False
-    if issue_number and "@Caleb-Hurst" in task:
+    if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
 
     # Fetch the last test result (last comment by Caleb-Hurst) this will change later
@@ -246,9 +246,6 @@ async def main():
     else:
         full_task = f"{directions}\n\n{task}"
 
-
-    # Accept labels as fourth argument (comma-separated string)
-    labels = sys.argv[4].split(',') if len(sys.argv) > 4 else []
 
     # Load context from all label-matching .txt files
     context = load_context_from_labels(labels, context_dir=Path(__file__).parent / "context")

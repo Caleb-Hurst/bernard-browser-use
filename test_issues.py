@@ -244,9 +244,12 @@ async def main():
         if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]:
             print(f"[SKIP] Issue #{issue['number']} has 'testing-in-progress' label, skipping.")
             continue
-        # Check for tagged comment after last test
+        # Check for tagged comment after last test - this is now required for testing
         tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []), "Caleb-Hurst")
-        desc = tagged_comment if tagged_comment else issue["body"]
+        if not tagged_comment:
+            print(f"[SKIP] Issue #{issue['number']} has no @Caleb-Hurst instruction comment, skipping.")
+            continue
+        desc = tagged_comment
         number = issue["number"]
         node_id = issue.get("node_id")
         if not node_id:
