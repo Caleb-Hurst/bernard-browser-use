@@ -82,9 +82,8 @@ def collapse_output(full_output):
     )
 
 """
-Returns the task portion of the first comment with testing instructions after the last test comment by the bot.
-Only comments that start with "@{bot_username} Testing Instructions:" are considered valid.
-Returns only the text that comes after "Testing Instructions:" prefix.
+Returns the body of the first comment mentioning the bot after the last test comment by the bot.
+This is used for detecting change requests.
 """
 def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
     last_test_time = None
@@ -93,18 +92,30 @@ def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
         if c["author"] == bot_username:
             last_test_time = c["createdAt"]
             break
-    # Now look for a comment with testing instructions after last_test_time
+    # Now look for a comment mentioning the bot after last_test_time
+    for c in comments:
+        if f"@{bot_username}" in c["body"]:
+            if last_test_time is None or c["createdAt"] > last_test_time:
+                return c["body"]
+    return None
+
+
+"""
+Returns the task portion from testing instructions comments.
+Only comments that start with "@{bot_username} Testing Instructions:" are considered valid.
+Returns only the text that comes after "Testing Instructions:" prefix.
+"""
+def get_testing_instructions(comments, bot_username="Caleb-Hurst"):
+    # Look for any comment with testing instructions (not limited by previous test time)
     for c in comments:
         if f"@{bot_username} Testing Instructions:" in c["body"]:
-            if last_test_time is None or c["createdAt"] > last_test_time:
-                # Extract only the task portion after "Testing Instructions:"
-                body = c["body"]
-                prefix = f"@{bot_username} Testing Instructions:"
-                if prefix in body:
-                    # Return everything after the prefix, stripped of leading/trailing whitespace
-                    task = body.split(prefix, 1)[1].strip()
-                    return task if task else None
-                return c["body"]  # Fallback to full body if parsing fails
+            # Extract only the task portion after "Testing Instructions:"
+            body = c["body"]
+            prefix = f"@{bot_username} Testing Instructions:"
+            if prefix in body:
+                # Return everything after the prefix, stripped of leading/trailing whitespace
+                task = body.split(prefix, 1)[1].strip()
+                return task if task else None
     return None
 
 
@@ -253,12 +264,12 @@ async def main():
         if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]:
             print(f"[SKIP] Issue #{issue['number']} has 'testing-in-progress' label, skipping.")
             continue
-        # Check for tagged comment after last test - this is now required for testing
-        tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []), "Caleb-Hurst")
-        if not tagged_comment:
+        # Check for testing instructions - this is now required for testing
+        testing_instructions = get_testing_instructions(issue.get("comments", []), "Caleb-Hurst")
+        if not testing_instructions:
             print(f"[SKIP] Issue #{issue['number']} has no '@Caleb-Hurst Testing Instructions:' comment, skipping.")
             continue
-        desc = tagged_comment
+        desc = testing_instructions
         number = issue["number"]
         node_id = issue.get("node_id")
         if not node_id:
