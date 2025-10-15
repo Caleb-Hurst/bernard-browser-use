@@ -30,6 +30,7 @@ from context_loader import load_context_from_labels
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
 TAG_NAME = "video-uploads"
+BOT_USERNAME = "Caleb-Hurst"
 
 headers = {
     "Authorization": f"token {GITHUB_TOKEN}",
@@ -191,7 +192,7 @@ async def main():
     if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
 
-    # Fetch the last test result (last comment by Caleb-Hurst) this will change later
+    # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """
     Extract the result section from a GitHub comment body.
     
@@ -219,8 +220,8 @@ async def main():
         resp = requests.get(url, headers=headers)
         resp.raise_for_status()
         comments = resp.json()
-        # Find the most recent comment by Caleb-Hurst
-        caleb_comments = [c for c in comments if c.get("user", {}).get("login") == "Caleb-Hurst"]
+        # Find the most recent comment by BOT_USERNAME
+        caleb_comments = [c for c in comments if c.get("user", {}).get("login") == BOT_USERNAME]
         if caleb_comments:
             last_comment_body = sorted(caleb_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
             last_test_result = extract_result_section(last_comment_body)

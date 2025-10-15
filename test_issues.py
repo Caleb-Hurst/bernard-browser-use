@@ -28,6 +28,7 @@ load_dotenv()
 
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO = "bernardhealth/bernieportal"
+BOT_USERNAME = "Caleb-Hurst"
 
 """
 Extract the final result section from agent output.
@@ -85,7 +86,7 @@ def collapse_output(full_output):
 Returns the body of the first comment mentioning the bot after the last test comment by the bot.
 This is used for detecting change requests.
 """
-def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
+def get_tagged_comment_after_last_test(comments, bot_username=BOT_USERNAME):
     last_test_time = None
     # Find the most recent test comment by the bot
     for c in reversed(comments):
@@ -105,7 +106,7 @@ Returns the task portion from testing instructions comments.
 Only comments that start with "@{bot_username} Testing Instructions:" are considered valid.
 Returns only the text that comes after "Testing Instructions:" prefix.
 """
-def get_testing_instructions(comments, bot_username="Caleb-Hurst"):
+def get_testing_instructions(comments, bot_username=BOT_USERNAME):
     # Look for any comment with testing instructions (not limited by previous test time)
     for c in comments:
         if f"@{bot_username} Testing Instructions:" in c["body"]:
@@ -265,9 +266,9 @@ async def main():
             print(f"[SKIP] Issue #{issue['number']} has 'testing-in-progress' label, skipping.")
             continue
         # Check for testing instructions - this is now required for testing
-        testing_instructions = get_testing_instructions(issue.get("comments", []), "Caleb-Hurst")
+        testing_instructions = get_testing_instructions(issue.get("comments", []), BOT_USERNAME)
         if not testing_instructions:
-            print(f"[SKIP] Issue #{issue['number']} has no '@Caleb-Hurst Testing Instructions:' comment, skipping.")
+            print(f"[SKIP] Issue #{issue['number']} has no '@{BOT_USERNAME} Testing Instructions:' comment, skipping.")
             continue
         desc = testing_instructions
         number = issue["number"]
