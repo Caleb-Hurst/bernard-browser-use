@@ -26,7 +26,7 @@ import requests
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
 from browser_use.browser.profile import ViewportSize
 from context_loader import load_context_from_labels
-from context_updater import process_task_for_context_updates
+from context_updater import process_github_comment_for_context_updates
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
@@ -188,13 +188,19 @@ async def main():
     # Accept user_data_dir as third argument (for unique browser profile)
     user_data_dir = sys.argv[3] if len(sys.argv) > 3 else './chrome_profile'
 
-    # Process task for context updates (handle "REMEMBER NEXT TIME FOR" patterns)
-    process_task_for_context_updates(task, context_dir=Path(__file__).parent / "context")
-
     # Determine if this is a change request (based on changes-requested label)
     is_change_request = False
     if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
+
+    # Process GitHub comments for context updates if this is a change request
+    if is_change_request and issue_number:
+        github_actions_comment = get_latest_github_actions_comment(issue_number)
+        if github_actions_comment:
+            process_github_comment_for_context_updates(
+                github_actions_comment, 
+                context_dir=Path(__file__).parent / "context"
+            )
 
     # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """

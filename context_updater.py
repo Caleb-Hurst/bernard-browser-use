@@ -17,15 +17,15 @@ from typing import Optional, Tuple
 from openai import OpenAI
 
 
-def parse_remember_next_time(task_description: str) -> Optional[Tuple[str, str]]:
+def parse_remember_next_time(comment_text: str) -> Optional[Tuple[str, str]]:
 	"""
-	Parse task description for "REMEMBER NEXT TIME FOR" patterns.
+	Parse comment text for "REMEMBER NEXT TIME FOR" patterns.
 	
 	Looks for patterns like:
 	"REMEMBER NEXT TIME FOR feature_name (information to remember)"
 	
 	Args:
-		task_description (str): The full task description text
+		comment_text (str): The full comment text from GitHub
 		
 	Returns:
 		Optional[Tuple[str, str]]: Tuple of (feature_name, information) or None if not found
@@ -34,7 +34,7 @@ def parse_remember_next_time(task_description: str) -> Optional[Tuple[str, str]]
 	# Using non-greedy matching for the feature name and greedy for the parentheses content
 	pattern = r'REMEMBER NEXT TIME FOR\s+([^(]+?)\s*\(\s*(.*?)\s*\)'
 	
-	match = re.search(pattern, task_description, re.IGNORECASE | re.DOTALL)
+	match = re.search(pattern, comment_text, re.IGNORECASE | re.DOTALL)
 	if match:
 		feature_name = match.group(1).strip()
 		information = match.group(2).strip()
@@ -65,37 +65,17 @@ def generate_context_content(feature_name: str, information: str, existing_conte
 	client = OpenAI(api_key=api_key)
 	
 	if existing_content:
-		prompt = f"""You are helping to maintain context files that provide background information for QA testing of software features.
+		prompt = f"""Here is the contents of our {feature_name} markdown file:
 
-I have an existing context file for the "{feature_name}" feature:
-
----
 {existing_content}
----
 
-I need you to update this file to include the following new information:
-{information}
-
-Please provide the complete updated context file in markdown format. The file should:
-1. Maintain all existing valuable information
-2. Integrate the new information naturally
-3. Be well-organized and easy to read
-4. Focus on practical testing guidance and feature understanding
-5. Use clear markdown formatting
+I would like to add additional section for {information}. Please add this into our markdown file and return the complete updated file.
 
 Return only the updated markdown content, no explanations or extra text."""
 	else:
-		prompt = f"""You are helping to create a context file that provides background information for QA testing of a software feature.
+		prompt = f"""Please create a new markdown context file for the {feature_name} feature with the following information:
 
-I need you to create a new context file for the "{feature_name}" feature with the following information:
 {information}
-
-Please provide a well-structured context file in markdown format. The file should:
-1. Be organized and easy to read
-2. Focus on practical testing guidance and feature understanding  
-3. Include relevant details that would help someone test this feature
-4. Use clear markdown formatting (headers, bullet points, etc.)
-5. Be comprehensive but concise
 
 Return only the markdown content, no explanations or extra text."""
 
@@ -166,18 +146,18 @@ def update_context_file(feature_name: str, information: str, context_dir: Option
 		raise Exception(f"Failed to write context file: {str(e)}")
 
 
-def process_task_for_context_updates(task_description: str, context_dir: Optional[Path] = None) -> Optional[str]:
+def process_github_comment_for_context_updates(comment_text: str, context_dir: Optional[Path] = None) -> Optional[str]:
 	"""
-	Process a task description and update context files if "REMEMBER NEXT TIME FOR" pattern is found.
+	Process a GitHub comment and update context files if "REMEMBER NEXT TIME FOR" pattern is found.
 	
 	Args:
-		task_description (str): Full task description text
+		comment_text (str): Full GitHub comment text
 		context_dir (Optional[Path]): Directory containing context files (default: ./context)
 		
 	Returns:
 		Optional[str]: Path to updated context file, or None if no update needed
 	"""
-	remember_info = parse_remember_next_time(task_description)
+	remember_info = parse_remember_next_time(comment_text)
 	if not remember_info:
 		return None
 	
