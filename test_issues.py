@@ -28,6 +28,7 @@ load_dotenv()
 
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 REPO = "bernardhealth/bernieportal"
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "Caleb-Hurst")
 
 """
 Extract the final result section from agent output.
@@ -83,8 +84,9 @@ def collapse_output(full_output):
 
 """
 Returns the body of the first comment mentioning the bot after the last test comment by the bot.
+This is used for detecting change requests.
 """
-def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
+def get_tagged_comment_after_last_test(comments, bot_username=BOT_USERNAME):
     last_test_time = None
     # Find the most recent test comment by the bot
     for c in reversed(comments):
@@ -96,6 +98,25 @@ def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
         if f"@{bot_username}" in c["body"]:
             if last_test_time is None or c["createdAt"] > last_test_time:
                 return c["body"]
+    return None
+
+
+"""
+Returns the task portion from testing instructions comments.
+Only comments that start with "@{bot_username} Testing Instructions:" are considered valid.
+Returns only the text that comes after "Testing Instructions:" prefix.
+"""
+def get_testing_instructions(comments, bot_username=BOT_USERNAME):
+    # Look for any comment with testing instructions (not limited by previous test time)
+    for c in comments:
+        if f"@{bot_username} Testing Instructions:" in c["body"]:
+            # Extract only the task portion after "Testing Instructions:"
+            body = c["body"]
+            prefix = f"@{bot_username} Testing Instructions:"
+            if prefix in body:
+                # Return everything after the prefix, stripped of leading/trailing whitespace
+                task = body.split(prefix, 1)[1].strip()
+                return task if task else None
     return None
 
 
@@ -235,18 +256,31 @@ async def main():
         # Stop processing if we've reached the maximum number of concurrent issues
         if processed_count >= max_concurrent_issues:
             break
-        # Skip if issue has the 'ai-tested' label
-        if 'ai-tested' in [label.lower() for label in issue.get('labels', [])]:
-            print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label, skipping.")
-            continue
-
-        # Skip if issue has the 'testing-in-progress' label
+        # Skip if issue has the 'testing-in-progress' label (never test when in progress)
         if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]:
             print(f"[SKIP] Issue #{issue['number']} has 'testing-in-progress' label, skipping.")
             continue
-        # Check for tagged comment after last test
-        tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []), "Caleb-Hurst")
-        desc = tagged_comment if tagged_comment else issue["body"]
+
+        # Check ai-tested and changes-requested label combinations
+        labels_lower = [label.lower() for label in issue.get('labels', [])]
+        has_ai_tested = 'ai-tested' in labels_lower
+        has_changes_requested = 'changes-requested' in labels_lower
+        
+        # Skip if ai-tested is present WITHOUT changes-requested
+        if has_ai_tested and not has_changes_requested:
+            print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label without 'changes-requested', skipping.")
+            continue
+        
+        # Allow testing if:
+        # 1. Both ai-tested AND changes-requested are present (retest scenario)
+        # 2. Neither ai-tested nor changes-requested are present (new test scenario)
+        # 3. Only changes-requested is present (change request without previous test)
+        # Check for testing instructions - this is now required for testing
+        testing_instructions = get_testing_instructions(issue.get("comments", []), BOT_USERNAME)
+        if not testing_instructions:
+            print(f"[SKIP] Issue #{issue['number']} has no '@{BOT_USERNAME} Testing Instructions:' comment, skipping.")
+            continue
+        desc = testing_instructions
         number = issue["number"]
         node_id = issue.get("node_id")
         if not node_id:

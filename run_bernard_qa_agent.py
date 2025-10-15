@@ -30,6 +30,7 @@ from context_loader import load_context_from_labels
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
 TAG_NAME = "video-uploads"
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "Caleb-Hurst")
 
 headers = {
     "Authorization": f"token {GITHUB_TOKEN}",
@@ -116,7 +117,7 @@ def upload_asset(upload_url, file_path):
 """
 Update GitHub issue labels after test completion.
 
-Removes 'testing-in-progress' label and adds 'ai-tested'
+Removes 'testing-in-progress' and 'changes-requested' labels and adds 'ai-tested'
 label to indicate that automated testing has been completed for this issue.
 
 Args:
@@ -134,8 +135,8 @@ def update_labels(issue_number):
     resp.raise_for_status()
     labels = [label['name'] for label in resp.json().get('labels', [])]
 
-    # Remove 'testing-in-progress' if present, add 'ai-tested'
-    labels = [label for label in labels if label != 'testing-in-progress']
+    # Remove 'testing-in-progress' and 'changes-requested' if present, add 'ai-tested'
+    labels = [label for label in labels if label not in ['testing-in-progress', 'changes-requested']]
 
     if 'ai-tested' not in labels:
         labels.append('ai-tested')
@@ -186,12 +187,12 @@ async def main():
     # Accept user_data_dir as third argument (for unique browser profile)
     user_data_dir = sys.argv[3] if len(sys.argv) > 3 else './chrome_profile'
 
-    # Determine if this is a change request (tagged comment)
+    # Determine if this is a change request (based on changes-requested label)
     is_change_request = False
-    if issue_number and "@Caleb-Hurst" in task:
+    if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
 
-    # Fetch the last test result (last comment by Caleb-Hurst) this will change later
+    # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """
     Extract the result section from a GitHub comment body.
     
@@ -219,10 +220,10 @@ async def main():
         resp = requests.get(url, headers=headers)
         resp.raise_for_status()
         comments = resp.json()
-        # Find the most recent comment by Caleb-Hurst
-        caleb_comments = [c for c in comments if c.get("user", {}).get("login") == "Caleb-Hurst"]
-        if caleb_comments:
-            last_comment_body = sorted(caleb_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
+        # Find the most recent comment by BOT_USERNAME
+        bot_comments = [c for c in comments if c.get("user", {}).get("login") == BOT_USERNAME]
+        if bot_comments:
+            last_comment_body = sorted(bot_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
             last_test_result = extract_result_section(last_comment_body)
 
     # Build the full prompt
@@ -236,9 +237,6 @@ async def main():
     else:
         full_task = f"{directions}\n\n{task}"
 
-
-    # Accept labels as fourth argument (comma-separated string)
-    labels = sys.argv[4].split(',') if len(sys.argv) > 4 else []
 
     # Load context from all label-matching .txt files
     context = load_context_from_labels(labels, context_dir=Path(__file__).parent / "context")
