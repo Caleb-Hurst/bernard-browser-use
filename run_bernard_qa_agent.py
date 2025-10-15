@@ -181,12 +181,7 @@ async def main():
     if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
 
-    # Process change request directions for context updates if this is a change request
-    if is_change_request:
-        process_github_comment_for_context_updates(
-            task, 
-            context_dir=Path(__file__).parent / "context"
-        )
+
 
     # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """
@@ -258,6 +253,13 @@ async def main():
             last_test_result = extract_result_section(last_comment_body)
         # Use helper to get the most recent comment tagging the bot
         change_request_directions = get_most_recent_tagged_comment(comments, BOT_USERNAME)
+
+    # Process change request directions for context updates if this is a change request
+    if is_change_request and change_request_directions:
+        process_github_comment_for_context_updates(
+            change_request_directions, 
+            context_dir=Path(__file__).parent / "context"
+        )
 
     # Build the full prompt
     if is_change_request and last_test_result and change_request_directions:
