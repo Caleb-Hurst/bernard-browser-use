@@ -73,18 +73,6 @@ def get_or_create_release():
 
     return r.json()["id"], r.json()["upload_url"]
 
-"""Fetch the most recent comment by the github-actions bot for the given issue."""
-def get_latest_github_actions_comment(issue_number):
-    url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
-    resp = requests.get(url, headers=headers)
-    resp.raise_for_status()
-    comments = resp.json()
-    # github-actions bot username is 'github-actions[bot]'
-    actions_comments = [c for c in comments if c.get("user", {}).get("login") == "github-actions[bot]"]
-    if not actions_comments:
-        return None
-    # Return the body of the most recent comment
-    return sorted(actions_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
 
 """
 Upload a video file as a GitHub release asset.
@@ -174,7 +162,7 @@ async def main():
     directions = (
         f"YOU ARE THE MANUAL QA TEST ENGINEER. "
         f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
-        f"Go to https://staging.bernieportal.com. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
+        f"Go to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
         f"Once logged in, continue to the following task. Your job is to verify that something either works or does not work and REPORT the result. "
         f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
     )
@@ -203,44 +191,88 @@ async def main():
     # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """
     Extract the result section from a GitHub comment body.
-    
-    Parses a comment body to find and extract the content after 'Result:' 
+
+    Parses a comment body to find and extract the content after 'Result:'
     and before the next section marker (like video links or full output).
     Used to get the essential test result from previous QA runs.
-    
+
     Args:
         comment_body (str): The full text of a GitHub comment
-        
+
     Returns:
         str or None: The extracted result text, or None if no result section found
     """
     def extract_result_section(comment_body):
-        # Try to extract the section after 'Result:' and before the next section (e.g., '▶️' or 'Full agent output')
-        match = re.search(r'Result:(.*?)(?:\n▶️|\nFull agent output|\n\s*\n|$)', comment_body, re.DOTALL | re.IGNORECASE)
+        # Extract the section between '✅ Test run complete!' and 'Full agent output (click to expand)'
+        match = re.search(r'✅ Test run complete!(.*?)(?:Full agent output \(click to expand\)|$)', comment_body, re.DOTALL | re.IGNORECASE)
         if match:
             return match.group(1).strip()
         return None
 
     last_test_result = None
+    change_request_directions = None
+
+    def get_most_recent_tagged_comment(comments, bot_username):
+        tag_pattern = re.compile(rf'(^|\s)@{re.escape(bot_username)}(\s|$)', re.IGNORECASE | re.MULTILINE)
+        tagged_comments = []
+        for c in comments:
+            body = c.get("body", "")
+            # Check if any line is exactly @bot_username (case-insensitive, stripped)
+            lines = [line.strip() for line in body.splitlines()]
+            direct_tag = any(line.lower() == f"@{bot_username.lower()}" for line in lines)
+            regex_tag = tag_pattern.search(body.strip())
+            if direct_tag or regex_tag:
+                tagged_comments.append(c)
+        if tagged_comments:
+            # Sort by created_at descending (most recent first)
+            tagged_comments_sorted = sorted(tagged_comments, key=lambda c: c["created_at"], reverse=True)
+            return tagged_comments_sorted[0]["body"]
+        return None
+
+    def fetch_all_issue_comments(repo, issue_number, headers):
+        comments = []
+        url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments?per_page=100"
+        while url:
+            resp = requests.get(url, headers=headers)
+            resp.raise_for_status()
+            comments.extend(resp.json())
+            # Parse Link header for pagination
+            link = resp.headers.get('Link', '')
+            next_url = None
+            if link:
+                parts = link.split(',')
+                for part in parts:
+                    if 'rel="next"' in part:
+                        next_url = part[part.find('<')+1:part.find('>')]
+                        break
+            url = next_url
+        return comments
 
     if issue_number:
-        url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
-        resp = requests.get(url, headers=headers)
-        resp.raise_for_status()
-        comments = resp.json()
-        # Find the most recent comment by BOT_USERNAME
+        comments = fetch_all_issue_comments(REPO, issue_number, headers)
+        # Find the most recent comment authored by BOT_USERNAME (for test result)
         bot_comments = [c for c in comments if c.get("user", {}).get("login") == BOT_USERNAME]
         if bot_comments:
-            last_comment_body = sorted(bot_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
+            most_recent_bot_comment = sorted(bot_comments, key=lambda c: c["created_at"], reverse=True)[0]
+            last_comment_body = most_recent_bot_comment["body"]
             last_test_result = extract_result_section(last_comment_body)
+        # Use helper to get the most recent comment tagging the bot
+        change_request_directions = get_most_recent_tagged_comment(comments, BOT_USERNAME)
 
     # Build the full prompt
-    if is_change_request and last_test_result:
+    if is_change_request and last_test_result and change_request_directions:
+        login_username = 'wixife7553@chansd.com'
+        login_password = 'Testing123!'
+
         full_task = (
-            f"{directions}\n\n"
-            f"This is a CHANGE REQUEST based on the following feedback from the last test run.\n"
+            f"YOU ARE THE MANUAL QA TEST ENGINEER. "
+            f"You are receiving a CHANGE REQUEST based on the following feedback from the last test run.\n"
+            f"DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
+            f"Please keep your response as short and concise as possible. Use bullet points in your response. Below you will receive the results of your last test. "
             f"---\nLAST TEST RESULT (Result section only):\n{last_test_result}\n---\n"
-            f"Please address the following change request:\n{task}"
+            f"You will address these changes by going to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
+            f"Once logged in, continue to address the following change request. Your job is to verify that something either works or does not work and REPORT the result. "
+            f"\nCHANGE REQUEST INSTRUCTIONS (from github-actions):\n{change_request_directions}\n"
         )
     else:
         full_task = f"{directions}\n\n{task}"
@@ -267,12 +299,12 @@ async def main():
 
     agent = Agent(
         task=full_task,
-        llm=ChatOpenAI(model='gpt-4.1-mini'),
+        llm=ChatOpenAI(model='gpt-5'),
         extend_system_message=context,
         browser_session=browser_session,
     )
 
-    await agent.run(max_steps=50)
+    await agent.run(max_steps=100)
 
     # Explicitly finalize the video recording if possible
     # Try both browser_session and agent.browser_session for compatibility
