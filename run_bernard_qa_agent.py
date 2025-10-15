@@ -200,6 +200,19 @@ async def main():
         is_change_request = True
 
     # Fetch the last test result (last comment by Caleb-Hurst) this will change later
+    """
+    Extract the result section from a GitHub comment body.
+    
+    Parses a comment body to find and extract the content after 'Result:' 
+    and before the next section marker (like video links or full output).
+    Used to get the essential test result from previous QA runs.
+    
+    Args:
+        comment_body (str): The full text of a GitHub comment
+        
+    Returns:
+        str or None: The extracted result text, or None if no result section found
+    """
     def extract_result_section(comment_body):
         # Try to extract the section after 'Result:' and before the next section (e.g., '▶️' or 'Full agent output')
         match = re.search(r'Result:(.*?)(?:\n▶️|\nFull agent output|\n\s*\n|$)', comment_body, re.DOTALL | re.IGNORECASE)
