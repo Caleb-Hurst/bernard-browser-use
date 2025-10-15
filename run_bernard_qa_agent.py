@@ -45,7 +45,7 @@ test video uploads as assets.
 
 Returns:
     tuple: (release_id, upload_url) for the GitHub release
-    
+
 Raises:
     requests.exceptions.HTTPError: If GitHub API requests fail
 """
@@ -93,10 +93,10 @@ as an asset that can be downloaded publicly.
 Args:
     upload_url (str): GitHub release upload URL template
     file_path (str): Local path to the video file to upload
-    
+
 Returns:
     str: Public download URL for the uploaded asset
-    
+
 Raises:
     requests.exceptions.HTTPError: If the upload fails
 """
@@ -116,12 +116,12 @@ def upload_asset(upload_url, file_path):
 """
 Update GitHub issue labels after test completion.
 
-Removes 'testing-in-progress' label and adds 'ai-tested' 
+Removes 'testing-in-progress' label and adds 'ai-tested'
 label to indicate that automated testing has been completed for this issue.
 
 Args:
     issue_number (int): GitHub issue number to update
-    
+
 Raises:
     requests.exceptions.HTTPError: If GitHub API requests fail
 """
