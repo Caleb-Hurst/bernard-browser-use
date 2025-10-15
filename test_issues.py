@@ -82,7 +82,8 @@ def collapse_output(full_output):
     )
 
 """
-Returns the body of the first comment mentioning the bot after the last test comment by the bot.
+Returns the body of the first comment with testing instructions after the last test comment by the bot.
+Only comments that start with "@{bot_username} Testing Instructions:" are considered valid.
 """
 def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
     last_test_time = None
@@ -91,9 +92,9 @@ def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
         if c["author"] == bot_username:
             last_test_time = c["createdAt"]
             break
-    # Now look for a comment mentioning the bot after last_test_time
+    # Now look for a comment with testing instructions after last_test_time
     for c in comments:
-        if f"@{bot_username}" in c["body"]:
+        if f"@{bot_username} Testing Instructions:" in c["body"]:
             if last_test_time is None or c["createdAt"] > last_test_time:
                 return c["body"]
     return None
@@ -247,7 +248,7 @@ async def main():
         # Check for tagged comment after last test - this is now required for testing
         tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []), "Caleb-Hurst")
         if not tagged_comment:
-            print(f"[SKIP] Issue #{issue['number']} has no @Caleb-Hurst instruction comment, skipping.")
+            print(f"[SKIP] Issue #{issue['number']} has no '@Caleb-Hurst Testing Instructions:' comment, skipping.")
             continue
         desc = tagged_comment
         number = issue["number"]
