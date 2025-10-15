@@ -1,3 +1,14 @@
+"""
+Project Issues Module
+
+This module provides functionality to fetch GitHub project issues from a specific project board.
+It uses the GitHub GraphQL API to retrieve issues that are in a designated column/status,
+along with their metadata including labels, comments, and state information.
+
+The module is specifically configured to work with a particular GitHub project board
+and column, filtering for open issues that are ready for automated testing.
+"""
+
 import os
 import requests
 from dotenv import load_dotenv
@@ -7,6 +18,25 @@ PROJECT_UNIQUE_ID = "PVT_kwDOAQ3_584AiFvQ"
 COLUMN_ID = "f8088824"
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 
+"""
+Fetch all project issues from a specific GitHub project board column.
+
+Queries the GitHub GraphQL API to retrieve open issues that are positioned in the
+configured project column. Returns detailed issue information including body text,
+labels, recent comments, and metadata needed for automated testing workflows.
+
+Returns:
+    list[dict]: List of issue dictionaries containing:
+        - body (str): Issue description/body text
+        - number (int): GitHub issue number
+        - node_id (str): GitHub GraphQL node ID
+        - labels (list[str]): List of label names attached to the issue
+        - comments (list[dict]): Recent comments with author, body, and timestamp
+
+Raises:
+    requests.exceptions.HTTPError: If GitHub API requests fail
+    KeyError: If required environment variables are missing
+"""
 def get_project_issues():
     """Fetch all project issues, their status, and labels"""
     query = '''

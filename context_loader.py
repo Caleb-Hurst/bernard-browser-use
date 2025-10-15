@@ -1,12 +1,23 @@
+"""
+Context Loader Module
+
+This module provides functionality to load contextual information from text files
+based on issue labels. It's designed to supply background information to browser
+automation agents by reading label-specific context files from the filesystem.
+
+The primary use case is to enhance AI agent prompts with relevant domain-specific
+information before executing automated QA tests or other browser tasks.
+"""
+
 import os
 from pathlib import Path
 
+"""
+Given a list of labels, load and concatenate context from matching .txt files.
+Each label will look for a file named <label>.txt in the context_dir (default: same dir as this file).
+Returns a string with all context joined by two newlines.
+"""
 def load_context_from_labels(labels, context_dir=None):
-    """
-    Given a list of labels, load and concatenate context from matching .txt files.
-    Each label will look for a file named <label>.txt in the context_dir (default: same dir as this file).
-    Returns a string with all context joined by two newlines.
-    """
     if context_dir is None:
         context_dir = Path(__file__).parent / "context"
     context_parts = []

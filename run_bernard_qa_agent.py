@@ -1,3 +1,19 @@
+"""
+Bernard QA Agent Runner
+
+This module coordinates automated QA testing using browser automation agents. It handles
+the complete lifecycle of QA test execution including:
+- Loading contextual information from labels
+- Setting up browser automation with proper configurations
+- Executing QA tests on staging environments
+- Recording test sessions as videos
+- Uploading test artifacts to GitHub releases
+- Updating issue labels and posting results
+
+The agent acts as a manual QA engineer, logging into staging environments and
+executing test scenarios defined in GitHub issues.
+"""
+
 import sys
 import os
 import asyncio
@@ -18,6 +34,19 @@ headers = {
     "Accept": "application/vnd.github+json"
 }
 
+"""
+Get existing GitHub release or create a new one for video uploads.
+
+Attempts to retrieve an existing release with the configured tag name.
+If no release exists, creates a new one specifically for storing
+test video uploads as assets.
+
+Returns:
+    tuple: (release_id, upload_url) for the GitHub release
+    
+Raises:
+    requests.exceptions.HTTPError: If GitHub API requests fail
+"""
 def get_or_create_release():
     url = f"https://api.github.com/repos/{REPO}/releases/tags/{TAG_NAME}"
     r = requests.get(url, headers=headers)
@@ -40,8 +69,8 @@ def get_or_create_release():
 
     return r.json()["id"], r.json()["upload_url"]
 
+"""Fetch the most recent comment by the github-actions bot for the given issue."""
 def get_latest_github_actions_comment(issue_number):
-    """Fetch the most recent comment by the github-actions bot for the given issue."""
     url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}/comments"
     resp = requests.get(url, headers=headers)
     resp.raise_for_status()
@@ -53,6 +82,22 @@ def get_latest_github_actions_comment(issue_number):
     # Return the body of the most recent comment
     return sorted(actions_comments, key=lambda c: c["created_at"], reverse=True)[0]["body"]
 
+"""
+Upload a video file as a GitHub release asset.
+
+Takes a local video file and uploads it to the specified GitHub release
+as an asset that can be downloaded publicly.
+
+Args:
+    upload_url (str): GitHub release upload URL template
+    file_path (str): Local path to the video file to upload
+    
+Returns:
+    str: Public download URL for the uploaded asset
+    
+Raises:
+    requests.exceptions.HTTPError: If the upload fails
+"""
 def upload_asset(upload_url, file_path):
     upload_url = upload_url.split("{")[0]
     params = {"name": os.path.basename(file_path)}
@@ -66,6 +111,18 @@ def upload_asset(upload_url, file_path):
     return r.json()["browser_download_url"]
 
 
+"""
+Update GitHub issue labels after test completion.
+
+Removes 'needs-test' label and adds 'ai-tested' label to indicate
+that automated testing has been completed for this issue.
+
+Args:
+    issue_number (int): GitHub issue number to update
+    
+Raises:
+    requests.exceptions.HTTPError: If GitHub API requests fail
+"""
 def update_labels(issue_number):
     url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}"
     headers_labels = headers.copy()
@@ -85,6 +142,22 @@ def update_labels(issue_number):
     resp = requests.patch(url, headers=headers_labels, json={"labels": labels})
     resp.raise_for_status()
 
+"""
+Main entry point for QA agent execution.
+
+Coordinates the complete QA testing workflow:
+1. Parses command line arguments for task, issue number, and browser profile
+2. Loads contextual information based on issue labels
+3. Sets up browser automation with proper viewport and recording
+4. Executes the QA agent with appropriate prompts and context
+5. Handles video recording, upload, and GitHub API updates
+
+Command line arguments:
+    sys.argv[1]: Task description or test instructions
+    sys.argv[2]: GitHub issue number (optional)
+    sys.argv[3]: Browser profile directory (optional)
+    sys.argv[4]: Comma-separated labels for context loading (optional)
+"""
 async def main():
     # Get login info and directions from environment variables (set in workflow or locally)
 
@@ -127,6 +200,19 @@ async def main():
         is_change_request = True
 
     # Fetch the last test result (last comment by Caleb-Hurst) this will change later
+    """
+    Extract the result section from a GitHub comment body.
+    
+    Parses a comment body to find and extract the content after 'Result:' 
+    and before the next section marker (like video links or full output).
+    Used to get the essential test result from previous QA runs.
+    
+    Args:
+        comment_body (str): The full text of a GitHub comment
+        
+    Returns:
+        str or None: The extracted result text, or None if no result section found
+    """
     def extract_result_section(comment_body):
         # Try to extract the section after 'Result:' and before the next section (e.g., '▶️' or 'Full agent output')
         match = re.search(r'Result:(.*?)(?:\n▶️|\nFull agent output|\n\s*\n|$)', comment_body, re.DOTALL | re.IGNORECASE)
