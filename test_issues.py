@@ -82,8 +82,9 @@ def collapse_output(full_output):
     )
 
 """
-Returns the body of the first comment with testing instructions after the last test comment by the bot.
+Returns the task portion of the first comment with testing instructions after the last test comment by the bot.
 Only comments that start with "@{bot_username} Testing Instructions:" are considered valid.
+Returns only the text that comes after "Testing Instructions:" prefix.
 """
 def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
     last_test_time = None
@@ -96,7 +97,14 @@ def get_tagged_comment_after_last_test(comments, bot_username="Caleb-Hurst"):
     for c in comments:
         if f"@{bot_username} Testing Instructions:" in c["body"]:
             if last_test_time is None or c["createdAt"] > last_test_time:
-                return c["body"]
+                # Extract only the task portion after "Testing Instructions:"
+                body = c["body"]
+                prefix = f"@{bot_username} Testing Instructions:"
+                if prefix in body:
+                    # Return everything after the prefix, stripped of leading/trailing whitespace
+                    task = body.split(prefix, 1)[1].strip()
+                    return task if task else None
+                return c["body"]  # Fallback to full body if parsing fails
     return None
 
 
