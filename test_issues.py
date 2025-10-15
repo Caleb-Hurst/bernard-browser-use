@@ -256,15 +256,25 @@ async def main():
         # Stop processing if we've reached the maximum number of concurrent issues
         if processed_count >= max_concurrent_issues:
             break
-        # Skip if issue has the 'ai-tested' label
-        if 'ai-tested' in [label.lower() for label in issue.get('labels', [])]:
-            print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label, skipping.")
-            continue
-
-        # Skip if issue has the 'testing-in-progress' label
+        # Skip if issue has the 'testing-in-progress' label (never test when in progress)
         if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]:
             print(f"[SKIP] Issue #{issue['number']} has 'testing-in-progress' label, skipping.")
             continue
+
+        # Check ai-tested and changes-requested label combinations
+        labels_lower = [label.lower() for label in issue.get('labels', [])]
+        has_ai_tested = 'ai-tested' in labels_lower
+        has_changes_requested = 'changes-requested' in labels_lower
+        
+        # Skip if ai-tested is present WITHOUT changes-requested
+        if has_ai_tested and not has_changes_requested:
+            print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label without 'changes-requested', skipping.")
+            continue
+        
+        # Allow testing if:
+        # 1. Both ai-tested AND changes-requested are present (retest scenario)
+        # 2. Neither ai-tested nor changes-requested are present (new test scenario)
+        # 3. Only changes-requested is present (change request without previous test)
         # Check for testing instructions - this is now required for testing
         testing_instructions = get_testing_instructions(issue.get("comments", []), BOT_USERNAME)
         if not testing_instructions:
