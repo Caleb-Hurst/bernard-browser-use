@@ -169,23 +169,13 @@ async def main():
     # Accept labels as fourth argument (comma-separated string)
     labels = sys.argv[4].split(',') if len(sys.argv) > 4 else []
 
-    if any('feature-toggle' in label for label in labels):
-        directions = (
-            f"YOU ARE THE MANUAL QA TEST ENGINEER. "
-            f"This test involves a FEATURE TOGGLE. Please ensure the feature toggle is enabled as described in the ticket or context. You may need to switch to an admin account using username to access the toggles please see the Feature Toggle Testing Instructions I have provided. Then log out and log back in as the below user type to test"
-            f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
-            f"Go to https://staging.bernieportal.com. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
-            f"Once logged in, continue to the following task. Your job is to verify that something either works or does not work and REPORT the result. "
-            f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
-        )
-    else:
-        directions = (
-            f"YOU ARE THE MANUAL QA TEST ENGINEER. "
-            f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
-            f"Go to https://staging.bernieportal.com. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
-            f"Once logged in, continue to the following task. Your job is to verify that something either works or does not work and REPORT the result. "
-            f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
-        )
+    directions = (
+        f"YOU ARE THE MANUAL QA TEST ENGINEER. "
+        f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
+        f"Go to https://staging.bernieportal.com. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
+        f"Once logged in, continue to the following task. Your job is to verify that something either works or does not work and REPORT the result. "
+        f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
+    )
 
     # Accept issue number as second argument
     issue_number = sys.argv[2] if len(sys.argv) > 2 else None
