@@ -193,14 +193,12 @@ async def main():
     if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
 
-    # Process GitHub comments for context updates if this is a change request
-    if is_change_request and issue_number:
-        github_actions_comment = get_latest_github_actions_comment(issue_number)
-        if github_actions_comment:
-            process_github_comment_for_context_updates(
-                github_actions_comment, 
-                context_dir=Path(__file__).parent / "context"
-            )
+    # Process change request directions for context updates if this is a change request
+    if is_change_request:
+        process_github_comment_for_context_updates(
+            task, 
+            context_dir=Path(__file__).parent / "context"
+        )
 
     # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """
