@@ -15,12 +15,14 @@ Key responsibilities:
 - Video recording management and URL extraction
 """
 
-import re
-import os
 import asyncio
+import os
+import re
+
 import requests
-from project_issues import get_project_issues
 from dotenv import load_dotenv
+
+from project_issues import get_project_issues
 
 load_dotenv()
 
@@ -117,6 +119,37 @@ def comment_on_issue(issue_number, message):
 
 
 """
+Add 'testing-in-progress' label to a GitHub issue.
+
+Marks an issue as currently being tested to prevent duplicate processing
+when the script runs again while tests are still in progress.
+
+Args:
+    issue_number (int): GitHub issue number to label
+    
+Raises:
+    requests.exceptions.HTTPError: If the GitHub API request fails
+"""
+def add_testing_in_progress_label(issue_number):
+    url = f"https://api.github.com/repos/{REPO}/issues/{issue_number}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    
+    # Get current labels
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    labels = [label['name'] for label in resp.json().get('labels', [])]
+    
+    # Add 'testing-in-progress' if not already present
+    if 'testing-in-progress' not in labels:
+        labels.append('testing-in-progress')
+        
+        # Update labels
+        resp = requests.patch(url, headers=headers, json={"labels": labels})
+        resp.raise_for_status()
+        print(f"[LABEL] Added 'testing-in-progress' label to issue #{issue_number}")
+
+
+"""
 Extract video URL from agent output.
 
 Searches for a VIDEO_URL:: pattern in the agent output and extracts the URL.
@@ -195,10 +228,23 @@ async def main():
             await run_agent_for_issue(desc, number, labels_arg)
 
     agent_tasks = []
+    max_concurrent_issues = 5  # Match the concurrency limiter to prevent over-queuing
+    processed_count = 0
+    
     for issue in issues:
+        # Stop processing if we've reached the maximum number of concurrent issues
+        if processed_count >= max_concurrent_issues:
+            print(f"[LIMIT] Reached maximum of {max_concurrent_issues} concurrent issues, stopping.")
+            break
+            
         # Skip if issue has the 'ai-tested' label
-        if 'ai-tested' in [l.lower() for l in issue.get('labels', [])]:
+        if 'ai-tested' in [label.lower() for label in issue.get('labels', [])]:
             print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label, skipping.")
+            continue
+            
+        # Skip if issue has the 'testing-in-progress' label
+        if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]:
+            print(f"[SKIP] Issue #{issue['number']} has 'testing-in-progress' label, skipping.")
             continue
         # Check for tagged comment after last test
         tagged_comment = get_tagged_comment_after_last_test(issue.get("comments", []), "Caleb-Hurst")
@@ -209,7 +255,16 @@ async def main():
             print(f"[SKIP] Issue #{number} missing node_id, skipping.")
             continue
         labels_arg = ",".join(issue.get("labels", []))
+        
+        # Immediately add 'testing-in-progress' label to prevent duplicate processing
+        try:
+            add_testing_in_progress_label(number)
+        except Exception as e:
+            print(f"[ERROR] Failed to add 'testing-in-progress' label to issue #{number}: {e}")
+            continue
+            
         agent_tasks.append(run_with_concurrency_limit(desc, number, labels_arg))
+        processed_count += 1
 
     if agent_tasks:
         await asyncio.gather(*agent_tasks)

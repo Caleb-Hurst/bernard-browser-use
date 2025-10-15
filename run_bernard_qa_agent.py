@@ -14,16 +14,18 @@ The agent acts as a manual QA engineer, logging into staging environments and
 executing test scenarios defined in GitHub issues.
 """
 
-import sys
-import os
 import asyncio
-import requests
 import glob
+import os
 import re
+import sys
 from pathlib import Path
-from context_loader import load_context_from_labels
+
+import requests
+
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
 from browser_use.browser.profile import ViewportSize
+from context_loader import load_context_from_labels
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
@@ -114,8 +116,8 @@ def upload_asset(upload_url, file_path):
 """
 Update GitHub issue labels after test completion.
 
-Removes 'needs-test' label and adds 'ai-tested' label to indicate
-that automated testing has been completed for this issue.
+Removes 'needs-test' and 'testing-in-progress' labels and adds 'ai-tested' 
+label to indicate that automated testing has been completed for this issue.
 
 Args:
     issue_number (int): GitHub issue number to update
@@ -130,10 +132,10 @@ def update_labels(issue_number):
     # Get current labels
     resp = requests.get(url, headers=headers_labels)
     resp.raise_for_status()
-    labels = [l['name'] for l in resp.json().get('labels', [])]
+    labels = [label['name'] for label in resp.json().get('labels', [])]
 
-    # Remove 'needs-test' if present, add 'tested-by-bernard-agent'
-    labels = [l for l in labels if l != 'needs-test']
+    # Remove 'needs-test' and 'testing-in-progress' if present, add 'ai-tested'
+    labels = [label for label in labels if label not in ['needs-test', 'testing-in-progress']]
 
     if 'ai-tested' not in labels:
         labels.append('ai-tested')
@@ -196,7 +198,7 @@ async def main():
 
     # Determine if this is a change request (tagged comment)
     is_change_request = False
-    if issue_number and f"@Caleb-Hurst" in task:
+    if issue_number and "@Caleb-Hurst" in task:
         is_change_request = True
 
     # Fetch the last test result (last comment by Caleb-Hurst) this will change later
