@@ -146,7 +146,7 @@ def update_context_file(feature_name: str, information: str, context_dir: Option
 		raise Exception(f"Failed to write context file: {str(e)}")
 
 
-def process_github_comment_for_context_updates(comment_text: str, context_dir: Optional[Path] = None) -> Optional[str]:
+def process_github_comment_for_context_updates(comment_text: str, context_dir: Optional[Path] = None) -> Optional[Tuple[str, str]]:
 	"""
 	Process a GitHub comment and update context files if "REMEMBER NEXT TIME FOR" pattern is found.
 	
@@ -155,7 +155,7 @@ def process_github_comment_for_context_updates(comment_text: str, context_dir: O
 		context_dir (Optional[Path]): Directory containing context files (default: ./context)
 		
 	Returns:
-		Optional[str]: Path to updated context file, or None if no update needed
+		Optional[Tuple[str, str]]: Tuple of (file_path, updated_content) if update made, or None if no update needed
 	"""
 	remember_info = parse_remember_next_time(comment_text)
 	if not remember_info:
@@ -165,8 +165,13 @@ def process_github_comment_for_context_updates(comment_text: str, context_dir: O
 	
 	try:
 		updated_file_path = update_context_file(feature_name, information, context_dir)
+		
+		# Read the updated content to return it
+		with open(updated_file_path, 'r', encoding='utf-8') as f:
+			updated_content = f.read()
+		
 		print(f"Updated context file for '{feature_name}': {updated_file_path}")
-		return updated_file_path
+		return updated_file_path, updated_content
 	except Exception as e:
 		print(f"Error updating context file for '{feature_name}': {str(e)}")
 		return None

@@ -256,10 +256,18 @@ async def main():
 
     # Process change request directions for context updates if this is a change request
     if is_change_request and change_request_directions:
-        process_github_comment_for_context_updates(
+        context_update_result = process_github_comment_for_context_updates(
             change_request_directions, 
             context_dir=Path(__file__).parent / "context"
         )
+        if context_update_result:
+            updated_file_path, updated_content = context_update_result
+            # Output the updated context file information for GitHub comment
+            print(f"CONTEXT_UPDATE::{updated_file_path}")
+            print(f"Updated Context File Content:")
+            print("```markdown")
+            print(updated_content)
+            print("```")
 
     # Build the full prompt
     if is_change_request and last_test_result and change_request_directions:
