@@ -26,6 +26,7 @@ import requests
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
 from browser_use.browser.profile import ViewportSize
 from context_loader import load_context_from_labels
+from context_updater import process_github_comment_for_context_updates
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO = "bernardhealth/bernieportal"
@@ -180,6 +181,8 @@ async def main():
     if issue_number and 'changes-requested' in [label.lower() for label in labels]:
         is_change_request = True
 
+
+
     # Fetch the last test result (last comment by BOT_USERNAME) this will change later
     """
     Extract the result section from a GitHub comment body.
@@ -250,6 +253,21 @@ async def main():
             last_test_result = extract_result_section(last_comment_body)
         # Use helper to get the most recent comment tagging the bot
         change_request_directions = get_most_recent_tagged_comment(comments, BOT_USERNAME)
+
+    # Process change request directions for context updates if this is a change request
+    if is_change_request and change_request_directions:
+        context_update_result = process_github_comment_for_context_updates(
+            change_request_directions, 
+            context_dir=Path(__file__).parent / "context"
+        )
+        if context_update_result:
+            updated_file_path, updated_content = context_update_result
+            # Output the updated context file information for GitHub comment
+            print(f"CONTEXT_UPDATE::{updated_file_path}")
+            print(f"Updated Context File Content:")
+            print("```markdown")
+            print(updated_content)
+            print("```")
 
     # Build the full prompt
     if is_change_request and last_test_result and change_request_directions:
