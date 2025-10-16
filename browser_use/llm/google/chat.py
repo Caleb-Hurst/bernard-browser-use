@@ -78,7 +78,7 @@ class ChatGoogle(BaseChatModel):
 	top_p: float | None = None
 	seed: int | None = None
 	thinking_budget: int | None = None  # for gemini-2.5 flash and flash-lite models, default will be set to 0
-	max_output_tokens: int | None = 8192
+	max_output_tokens: int | None = 4096
 	config: types.GenerateContentConfigDict | None = None
 	include_system_in_user: bool = False
 	supports_structured_output: bool = True  # New flag
@@ -255,7 +255,7 @@ class ChatGoogle(BaseChatModel):
 						self.logger.debug(f'🔧 Requesting structured output for {output_format.__name__}')
 						config['response_mime_type'] = 'application/json'
 						# Convert Pydantic model to Gemini-compatible schema
-						optimized_schema = SchemaOptimizer.create_optimized_json_schema(output_format)
+						optimized_schema = SchemaOptimizer.create_gemini_optimized_schema(output_format)
 
 						gemini_schema = self._fix_gemini_schema(optimized_schema)
 						config['response_schema'] = gemini_schema
