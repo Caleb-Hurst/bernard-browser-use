@@ -14,8 +14,8 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
-PROJECT_UNIQUE_ID = "PVT_kwDOAQ3_584AiFvQ"
-COLUMN_ID = "f8088824"
+PROJECT_UNIQUE_ID = os.environ["PROJECT_UNIQUE_ID"]
+COLUMN_ID = os.environ["COLUMN_ID"]
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
 
 """
