@@ -1,0 +1,8 @@
+
+# How to Request Time Off
+
+To request time off:
+
+- Click **Request Time Off** and fill out the form.
+ To select a starting or ending date:
+  1. Click inside the date field to open the calendar dropdown. You cannot type into the Starting and Ending fields but instead need to use a calendar modal to select a date

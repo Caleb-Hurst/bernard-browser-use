@@ -1,0 +1,9 @@
+
+# How to Masquerade as an Employee
+
+To masquerade into an employee:
+
+- Go to the employee's profile.
+- Hover over the action wheel in the top right corner where a popup modal will show with menu options
+- Select **MASQUERADE** from the menu.
+- You do not need to log out to masquerade as another user.
