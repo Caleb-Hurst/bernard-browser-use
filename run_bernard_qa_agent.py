@@ -172,8 +172,9 @@ async def main():
     # Accept the task (prompt) as first argument
     task = sys.argv[1] if len(sys.argv) > 1 else ''
 
-    # Accept user_data_dir as third argument (for unique browser profile)
-    user_data_dir = sys.argv[3] if len(sys.argv) > 3 else './chrome_profile'
+    # Accept user_data_dir as third argument, but default to a unique directory for each run
+    import uuid
+    user_data_dir = sys.argv[3] if len(sys.argv) > 3 else f'./chrome_profile_{uuid.uuid4().hex}'
 
     # Determine if this is a change request (based on changes-requested label)
     is_change_request = False
@@ -260,6 +261,8 @@ async def main():
             f"YOU ARE THE MANUAL QA TEST ENGINEER. "
             f"You are receiving a CHANGE REQUEST based on the following feedback from the last test run.\n"
             f"DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
+            f"DO NOT LOG OUT AND LOG BACK IN, STAY LOGGED IN, if you have trouble understanding what to do, consult the documentation provided"
+            f"Many new pages you visit will take a second to load, if there is a loading modal, WAIT FOR IT TO DISSAPEAR and continue with your task."
             f"Please keep your response as short and concise as possible. Use bullet points in your response. Below you will receive the results of your last test. "
             f"---\nLAST TEST RESULT (Result section only):\n{last_test_result}\n---\n"
             f"You will address these changes by going to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
@@ -272,6 +275,12 @@ async def main():
 
     # Load context from all label-matching .txt files
     context = load_context_from_labels(labels, context_dir=Path(__file__).parent / "context")
+    # Always include general.txt
+    general_path = Path(__file__).parent / "context" / "general.txt"
+    if general_path.exists():
+        with open(general_path, "r") as f:
+            general_context = f.read()
+        context = general_context + "\n\n" + context
 
     # Set up headless browser profile with matching window, viewport, and video size
     width, height = 1920, 1280
@@ -291,12 +300,12 @@ async def main():
 
     agent = Agent(
         task=full_task,
-        llm=ChatOpenAI(model='gpt-5'),
+        llm=ChatOpenAI(model='gpt-5-mini'),
         extend_system_message=context,
         browser_session=browser_session,
     )
 
-    await agent.run(max_steps=100)
+    await agent.run(max_steps=50)
 
     # Explicitly finalize the video recording if possible
     # Try both browser_session and agent.browser_session for compatibility
