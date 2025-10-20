@@ -25,6 +25,8 @@ import requests
 
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
 from browser_use.browser.profile import ViewportSize
+from browser_use.llm import ChatAnthropic
+
 from context_loader import load_context_from_labels
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -161,7 +163,8 @@ async def main():
     directions = (
         f"YOU ARE THE MANUAL QA TEST ENGINEER. "
         f"You will receive details from a GitHub ticket to verify that code changes either worked or failed. DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
-        f"Go to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
+        f"Go to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}."
+        f"If you receive different log in credentials below use those instead"
         f"Once logged in, continue to the following task. Your job is to verify that something either works or does not work and REPORT the result. "
         f"Please keep your response as short and concise as possible. Try to use bullet points if possible."
     )
@@ -263,11 +266,11 @@ async def main():
             f"DO NOT OPEN ANY NEW TABS, IF YOU NEED TO NAVIGATE TO A NEW URL USE THE ADDRESS BAR ONLY."
             f"DO NOT LOG OUT AND LOG BACK IN, STAY LOGGED IN, if you have trouble understanding what to do, consult the documentation provided"
             f"Many new pages you visit will take a second to load, if there is a loading modal, WAIT FOR IT TO DISSAPEAR and continue with your task."
-            f"Please keep your response as short and concise as possible. Use bullet points in your response. Below you will receive the results of your last test. "
+            f"Please keep your response as short and concise as possible. USE BULLET POINTS IN YOUR RESPONSE. Below you will receive the results of your last test. "
             f"---\nLAST TEST RESULT (Result section only):\n{last_test_result}\n---\n"
-            f"You will address these changes by going to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. "
-            f"Once logged in, continue to address the following change request. Your job is to verify that something either works or does not work and REPORT the result. "
-            f"\nCHANGE REQUEST INSTRUCTIONS (from github-actions):\n{change_request_directions}\n"
+            f"You will address these changes by going to https://staging.bernieportal.com/en/login. If you are not already logged in, log in first using username: {login_username}, password: {login_password}. If you receive different log in credentials below use those instead"
+            f"Once logged in, continue to address the following change request. Your job is to verify that something either works or does not work and REPORT the result"
+            f"\nCHANGE REQUEST INSTRUCTIONS:\n{change_request_directions}\n"
         )
     else:
         full_task = f"{directions}\n\n{task}"
@@ -282,30 +285,40 @@ async def main():
             general_context = f.read()
         context = general_context + "\n\n" + context
 
-    # Set up headless browser profile with matching window, viewport, and video size
+    # Load default config for browser profile and agent, then override as needed
+    from browser_use.config import CONFIG
     width, height = 1920, 1280
 
-    profile = BrowserProfile(
-        headless=True,
-        window_size=ViewportSize(width=width, height=height),
-        viewport=ViewportSize(width=width, height=height),
-        user_data_dir=user_data_dir,
-        args=[f'--window-size={width},{height}']
-    )
+    config = CONFIG.load_config()
+    # Get default browser profile and agent config
+    default_profile = config.get('browser_profile', {})
+    default_agent = config.get('agent', {})
+
+    # Override required fields for headless mode and window size
+    default_profile['headless'] = True
+    default_profile['window_size'] = {'width': width, 'height': height}
+    default_profile['viewport'] = {'width': width, 'height': height}
+    default_profile['user_data_dir'] = user_data_dir
+    default_profile['args'] = [f'--window-size={width},{height}']
+
+    profile = BrowserProfile(**default_profile)
     browser_session = Browser(
         browser_profile=profile,
         record_video_dir=Path('./tmp/recordings'),
         record_video_size={'width': width, 'height': height}
     )
 
+    # Use default agent config, but override as needed
+    agent_config = default_agent.copy() if default_agent else {}
     agent = Agent(
         task=full_task,
-        llm=ChatOpenAI(model='gpt-5-mini'),
+        llm=ChatAnthropic(model='claude-sonnet-4-0'),
         extend_system_message=context,
         browser_session=browser_session,
+        **agent_config
     )
 
-    await agent.run(max_steps=50)
+    await agent.run(max_steps=80)
 
     # Explicitly finalize the video recording if possible
     # Try both browser_session and agent.browser_session for compatibility
