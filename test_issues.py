@@ -24,6 +24,9 @@ from dotenv import load_dotenv
 
 from project_issues import get_project_issues
 
+# Maximum number of issues to test concurrently
+MAX_CONCURRENT_ISSUES = 3
+
 load_dotenv()
 
 GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
@@ -242,19 +245,25 @@ Flow:
 """
 async def main():
     issues = get_project_issues()
-    concurrency_limiter = asyncio.Semaphore(3)
+
+    # Count issues currently being tested (with 'testing-in-progress' label)
+    in_progress_issues = [issue for issue in issues if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]]
+    if len(in_progress_issues) >= MAX_CONCURRENT_ISSUES:
+        print(f"[INFO] Max concurrent issues ({MAX_CONCURRENT_ISSUES}) already being tested. Skipping this run.")
+        return
+
+    concurrency_limiter = asyncio.Semaphore(MAX_CONCURRENT_ISSUES)
 
     async def run_with_concurrency_limit(desc, number, labels_arg):
         async with concurrency_limiter:
             await run_agent_for_issue(desc, number, labels_arg)
 
     agent_tasks = []
-    max_concurrent_issues = 3  # Match the concurrency limiter to prevent over-queuing
     processed_count = 0
 
     for issue in issues:
         # Stop processing if we've reached the maximum number of concurrent issues
-        if processed_count >= max_concurrent_issues:
+        if processed_count >= MAX_CONCURRENT_ISSUES:
             break
         # Skip if issue has the 'testing-in-progress' label (never test when in progress)
         if 'testing-in-progress' in [label.lower() for label in issue.get('labels', [])]:
@@ -265,12 +274,12 @@ async def main():
         labels_lower = [label.lower() for label in issue.get('labels', [])]
         has_ai_tested = 'ai-tested' in labels_lower
         has_changes_requested = 'changes-requested' in labels_lower
-        
+
         # Skip if ai-tested is present WITHOUT changes-requested
         if has_ai_tested and not has_changes_requested:
             print(f"[SKIP] Issue #{issue['number']} has 'ai-tested' label without 'changes-requested', skipping.")
             continue
-        
+
         # Allow testing if:
         # 1. Both ai-tested AND changes-requested are present (retest scenario)
         # 2. Neither ai-tested nor changes-requested are present (new test scenario)
