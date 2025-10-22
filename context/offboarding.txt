@@ -1,0 +1,67 @@
+## What is the Offboarding Feature?
+The Offboarding feature in BerniePortal helps organizations manage the process when employees leave the company. Based on initial exploration, it appears to focus on creating and managing checklists to ensure no important tasks are missed during the employee departure process.
+## How to Navigate to Offboarding
+1. Log into BerniePortal
+2. From the main navigation menu at the top, click on "Offboarding"
+3. This takes you to the Offboarding Checklists page
+## Initial Observations
+- The main page shows "Offboarding Checklists" functionality
+- Description states: "Add an Offboarding Checklist to ensure you don't miss a task for employees leaving your organization"
+- There's an "Add a New Checklist" option
+- Existing checklists are displayed (e.g., "None (default)" and "Test Exit Interview Checklist")
+## How to Navigate to Offboarding Feature
+1. From the main navigation bar at the top of the page, click on **Offboarding**
+2. This takes you directly to the **Offboarding Checklists** page
+## Checklist Creation Workflow
+1. Click the **Add a New Checklist** button
+2. In the modal that opens:
+   - Enter a **Checklist Name** (required)
+   - Add tasks by filling in:
+     - **Task Title** (required)
+     - **Description** (optional but recommended)
+   - Click **Add** to add each task to the checklist
+   - Multiple tasks can be added to a single checklist
+3. Click **Save** to create the checklist
+4. Success confirmation message appears
+5. New checklist appears in the main list
+## Available Checklists
+- **None (default)**: The default option when no specific checklist is selected
+- **Test Exit Interview Checklist**: Pre-existing sample checklist
+- **Sample QA Checklist**: Created during testing with Exit Interview task
+## Checklist Management
+- View all existing checklists in a list format
+- Each checklist shows its name
+- Default checklist is clearly marked
+- Action menu available for each checklist with three options:
+### Edit Functionality
+1. Click the action button next to any checklist
+2. Select **Edit** from the dropdown menu
+3. **Update a Checklist** modal opens with:
+   - **Checklist Name** field (pre-populated, can be changed)
+   - **Existing Tasks** displayed in a table with:
+     - Task titles and descriptions
+     - Delete buttons (trash icons) to remove individual tasks
+   - **Add New Tasks** section with:
+     - Task Title field
+     - Description field
+     - **Add** button to include new tasks
+4. Click **Update** to save all changes
+### Clone Functionality
+1. Click the action button next to any checklist
+2. Select **Clone** from the dropdown menu
+3. **Clone a Checklist** modal opens with:
+   - **Checklist Name** field (pre-populated with "Copy of [Original Name]", can be modified)
+   - **Existing Tasks** from original checklist displayed
+   - **Add New Tasks** section to include additional tasks if needed
+4. Modify the name and/or add additional tasks as desired
+5. Click **Save** to create the cloned checklist
+6. New checklist appears in the main list
+### Delete Functionality
+1. Click the action button next to any checklist
+2. Select **Delete** from the dropdown menu
+3. **Delete Checklist** confirmation modal appears with:
+   - Warning message: "Are you sure you want to delete '[Checklist Name]'? This action cannot be undone."
+   - **Delete** button to confirm
+   - **Cancel** button to abort
+4. Click **Delete** to permanently remove the checklist
+5. Checklist is immediately removed from the list

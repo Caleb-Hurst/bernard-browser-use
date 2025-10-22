@@ -1,0 +1,198 @@
+# Benefits Feature Documentation
+## Overview
+The Benefits feature is a comprehensive employee benefits management system that allows employers to:
+- Manage employee benefit plans and forms
+- Organize employees into benefit subgroups
+- Configure open enrollment periods
+- Customize benefit settings and communications
+- Track benefit waivers and reasons
+## Navigation
+To access the Benefits feature:
+1. Log into the BerniePortal staging environment
+2. Click **Benefits** in the main navigation menu on the left sidebar
+3. You will land on the Benefits dashboard with 5 main sections available
+## Main Sections
+### 1. Plans
+**Purpose**: Manage employee benefit plans
+**Features**:
+- View existing benefit plans (displays as empty library if no plans exist)
+- **Add** button - Create new benefit plans
+- **Import** button - Import existing benefit plans from external sources
+**Usage**:
+- Click Plans in the Benefits sub-navigation
+- Use Add button to create new plans manually
+- Use Import button to bring in existing plan data
+### 2. Forms
+**Purpose**: Manage benefit enrollment and related forms
+**Features**:
+- Import benefit forms from insurance carriers
+- Form library management
+- Pre-configured form templates
+**Usage**:
+1. Click Forms in the Benefits sub-navigation
+2. Click **Import form** button to open form selection modal
+3. Select desired form (e.g., "Master UHC - Level Funded")
+4. Click **ADD** to import the form
+5. System displays "Imported form" confirmation notification
+### 3. Subgroups
+**Purpose**: Organize employees into different benefit groups
+**Features**:
+- Create custom employee subgroups
+- Manage existing subgroups
+- Default "All Employees" group
+**Usage**:
+1. Click Subgroups in the Benefits sub-navigation
+2. View existing subgroups in the table
+3. Enter new subgroup name in the text field
+4. Click **Add** button to create new subgroup
+5. New subgroup appears in the table immediately
+### 4. Open Enrollment
+**Purpose**: Manage benefit open enrollment periods
+**Features**:
+- Set enrollment period start and end dates
+- Configure renewal dates
+- Manage enrollment status
+**Usage**:
+1. Click Open Enrollment in the Benefits sub-navigation
+2. View current enrollment status ("Renewal date not set" if not configured)
+3. Configure enrollment periods using "Start and close your open enrollment period" options
+### 5. Settings
+**Purpose**: Configure all benefit-related settings and customizations
+Settings contains 8 sub-sections:
+#### 5.1 General
+**Features**:
+- Basic benefit configuration options
+- Radio button selections for benefit preferences
+- Dropdown menus for configuration choices
+**Usage**:
+- Click Settings > General
+- Configure radio button options
+- Select from dropdown menus
+- Test all interactive elements
+#### 5.2 Defined Contribution
+**Features**:
+- Configure contribution-based benefits
+- Set up employer contribution rules
+**Usage**:
+- Click Settings > Defined Contribution
+- Configure contribution parameters
+- Set employer matching rules
+#### 5.3 Dependent Attestation
+**Features**:
+- Toggle dependent attestation requirements on/off
+- Customize dependent definition text
+- Restore default messaging
+**Usage**:
+1. Click Settings > Dependent Attestation
+2. Click toggle to enable/disable attestation requirement
+3. When enabled, custom textarea appears
+4. Enter custom dependent definition text
+5. Use "restore default" link to reset to original text
+#### 5.4 Confirmation & Authorization
+**Features**:
+- Customize enrollment completion confirmation messages
+- Set authorization requirements
+**Usage**:
+1. Click Settings > Confirmation & Authorization
+2. Enter custom confirmation message in textarea
+3. Use "restore default" link to reset messaging
+4. Configure authorization requirements
+#### 5.5 Termination Reasons
+**Features**:
+- Manage employee termination reason list
+- Configure COBRA eligibility by reason
+- Add/edit custom termination reasons
+**Usage**:
+1. Click Settings > Termination Reasons
+2. View existing termination reasons with COBRA eligibility toggles
+3. Click edit links next to existing reasons to modify
+4. Toggle COBRA eligibility checkboxes as needed
+5. Add new custom termination reasons using the input field
+6. Click Add button to save new reasons
+#### 5.6 Privacy
+**Features**:
+- Configure PDF customization options
+- 5 toggleable privacy/PDF settings
+- Control what information appears on benefit documents
+**Usage**:
+1. Click Settings > Privacy
+2. Toggle each of the 5 PDF option switches on/off:
+   - Each toggle controls specific PDF content visibility
+   - Test all toggles to understand their impact
+   - Configure based on privacy requirements
+#### 5.7 Email
+**Features**:
+- Comprehensive email notification system
+- Multiple toggleable notification types
+- Interested parties management
+- Email recipient configuration
+**Usage**:
+1. Click Settings > Email
+2. Configure notification toggles (multiple options available)
+3. Add interested parties:
+   - Enter name in "Test User" field
+   - Enter email in email field
+   - Click Add to include additional notification recipients
+4. Test all email notification switches
+5. Save configuration changes
+#### 5.8 Waived Health Coverage
+**Features**:
+- Manage reasons employees can select when waiving health insurance
+- Edit existing waiver reasons
+- Add custom waiver reasons
+- Track waiver analytics for insurance negotiations
+**Usage**:
+1. Click Settings > Waived Health Coverage
+2. View existing waiver reasons:
+   - Spousal coverage
+   - Medicare
+   - Medicaid
+   - VA benefits
+   - Other
+   - Custom reasons (if added)
+3. Edit existing reasons:
+   - Click edit link (⁞⁞) next to any reason
+   - Modify reason text
+   - Save changes
+4. Add new custom reasons:
+   - Enter reason text in "Add a reason here" field
+   - Click **Add** button
+   - New reason appears in the list with edit functionality
+## Key Workflows
+### Setting Up Benefits
+1. Navigate to Benefits > Plans and import/add benefit plans
+2. Go to Benefits > Forms and import necessary enrollment forms
+3. Set up employee subgroups in Benefits > Subgroups if needed
+4. Configure open enrollment period in Benefits > Open Enrollment
+5. Customize all settings in Benefits > Settings (8 sub-sections)
+### Customizing Employee Experience
+1. Use Settings > Dependent Attestation to define dependent requirements
+2. Configure Settings > Confirmation & Authorization for enrollment messaging
+3. Set up Settings > Email notifications for stakeholders
+4. Customize Settings > Waived Health Coverage reasons
+5. Configure Settings > Privacy options for document generation
+### Managing Ongoing Benefits
+1. Monitor Benefits > Subgroups for employee organization
+2. Update Benefits > Open Enrollment periods as needed
+3. Add/modify waiver reasons in Settings > Waived Health Coverage
+4. Update termination reasons in Settings > Termination Reasons
+5. Adjust email notifications in Settings > Email
+## Interactive Elements Tested
+All interactive elements have been thoroughly tested including:
+- Navigation between all sections and sub-sections
+- Form imports and plan additions
+- Subgroup creation and management
+- All toggle switches and checkboxes
+- Text input fields and custom messaging
+- Dropdown menus and radio buttons
+- Edit functionality for existing items
+- Add functionality for new items
+- Delete options where available
+- Restore default options
+- Email notification configurations
+## Notes
+- All sections are interconnected and support the complete benefits management lifecycle
+- Settings customizations apply across the entire benefits experience
+- The system provides immediate feedback for all actions (success notifications, form updates, etc.)
+- All interactive elements are functional and respond appropriately to user input
+- The interface supports both basic and advanced benefits administration needs

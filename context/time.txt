@@ -1,0 +1,79 @@
+## Overview
+The Time feature in BerniePortal is a comprehensive time tracking and project management system that enables HR administrators to configure time tracking settings, manage projects, and oversee employee timesheet workflows. This feature allows organizations to track employee time, categorize work by projects or activities, calculate overtime, and manage timesheet approvals.
+## What the Time Feature Does
+- **Time Tracking Configuration**: Set up time tracking parameters and policies
+- **Project Management**: Create and manage projects for categorizing time by activities or clients
+- **Overtime Calculation**: Configure automatic overtime calculations (weekly or daily basis)
+- **Employee Grouping**: Create subgroups of employees with unique time settings
+- **Timesheet Approval**: Manage timesheet approval workflows with designated approvers
+- **Reporting and Summary**: View and filter time tracking data across different periods and employee groups
+## Navigation to Time Feature
+1. From the main BerniePortal dashboard, locate the left navigation menu
+2. Click on **"Time"** in the navigation bar
+3. You will be taken to the Time Summary page by default
+4. From here, you can access three main sections:
+   - **Summary**: View time tracking data and reports
+   - **Subgroups**: Manage employee groupings
+   - **Settings**: Configure time tracking parameters
+## Major Workflows and Sub-Features
+### 1. Time Settings
+**Navigation**: Time → Settings
+#### Projects Management
+- **Purpose**: Create projects to categorize employee time by activities, clients, or departments
+- **How to Use**:
+  - Click on **"Add Project"** to create new projects
+  - Edit existing projects by clicking on the project name and selecting **"Edit"**
+  - Configure project-specific payment rates for employees
+  - Delete projects when no longer needed
+- **Key Features**: Global project list, project-specific hourly rates, employee assignments
+#### Overtime Configuration
+- **Purpose**: Set up automatic overtime calculation rules
+- **How to Use**:
+  - Choose between two calculation methods:
+    - **Weekly basis**: Overtime calculated after 40 hours per week
+    - **Daily basis**: Overtime calculated after 8 hours per day
+  - Select the appropriate option based on company policy
+### 2. Time Summary
+**Navigation**: Time → Summary
+- **Purpose**: View and analyze time tracking data across your organization
+- **How to Use**:
+  - Use dropdown filters to narrow down data:
+    - **Subgroup Filter**: View data for specific employee subgroups or all employees
+    - **Time Period Filter**: Choose between "Today's time" or "This week's time"
+  - Review time tracking table showing:
+    - Total hours worked
+    - Regular hours
+    - Overtime hours
+  - Monitor employee time entries and identify patterns
+### 3. Subgroups Management
+**Navigation**: Time → Subgroups
+- **Purpose**: Create groupings of employees with unique time settings, particularly for timesheet due dates
+- **How to Use**:
+  - View existing subgroups and their configurations
+  - Click on a subgroup name to edit settings
+  - Configure when timesheets are due for each subgroup:
+    - Choose from any day of the week (Sunday through Saturday)
+    - Set different due dates for different employee groups
+  - Save changes to apply new timesheet due date settings
+### 4. Time Approvers Workflow
+**Purpose**: Designated approvers review and approve employee timesheets
+**Key Functions**:
+- Time Approvers can review submitted timesheets
+- Approve or deny time edits and entries
+- View employee timesheet details
+- Manage timesheet approval workflow
+**Assignment Process**: Time Approvers are assigned through individual employee profiles (Employees → [Employee Profile] → Time → Approvers)
+## Best Practices
+1. **Project Setup**: Create projects before employees begin time tracking to ensure proper categorization
+2. **Subgroup Configuration**: Set up subgroups based on different timesheet due date requirements
+3. **Overtime Rules**: Choose overtime calculation method that aligns with company policy and legal requirements
+4. **Approver Assignment**: Ensure each employee has designated time approvers for efficient timesheet processing
+5. **Regular Monitoring**: Use Summary section filters to regularly review time tracking data and identify issues
+## Key Features Summary
+- **Flexible Project Management**: Create unlimited projects with custom payment rates
+- **Automated Overtime**: Choose between weekly (40 hours) or daily (8 hours) overtime calculation
+- **Employee Subgrouping**: Group employees with different time tracking requirements
+- **Approval Workflow**: Streamlined timesheet approval process with designated approvers
+- **Comprehensive Reporting**: Filter and view time data by subgroup and time period
+- **Easy Navigation**: Intuitive interface with clear sections for different time management functions
+This Time feature provides organizations with comprehensive tools to manage employee time tracking, project categorization, overtime calculation, and approval workflows in a centralized, easy-to-use interface.

@@ -3,6 +3,12 @@
 
 To request time off:
 
-- Click **Request Time Off** and fill out the form.
+- Click **Request Time Off** and fill out the form inside the modal that pops up.
  To select a starting or ending date:
   1. Click inside the date field to open the calendar dropdown. You cannot type into the Starting and Ending fields but instead need to use a calendar modal to select a date
+  2. You will not be able to submit the form unless you have filled out the Starting and Ending fields.
+
+
+- To Approve PTO
+1. Navigate to the EMPLOYEES tab and select the desired employee from the given list. This will bring you to the employee profile
+2. From the employee profile find the PTO tab and approve or deny any PTO from there

@@ -1,0 +1,101 @@
+## What is the Compliance Feature?
+The Compliance feature in Bernie Portal is a comprehensive system that provides HR resources and streamlines the tracking of compliance communications within organizations. Powered by Mineral, this feature offers:
+- **HR Resources**: Access to legal updates, document templates, and compliance guidance
+- **Notice Management**: Create, distribute, and track compliance notices to employees
+- **Communication Tracking**: Monitor employee acknowledgment and completion of compliance requirements
+- **Administrative Controls**: Specialized access for compliance feature administrators
+## Core Functions
+- Generate and distribute compliance notices to employees or specific subgroups
+- Track employee progress and completion rates for compliance communications
+- Send automated reminders to employees with outstanding notices
+- Archive completed notices for record-keeping
+- Access HR resources and legal guidance powered by Mineral
+- Maintain audit logs of all compliance activities
+- Manage Multi-Factor Authentication (MFA) for enhanced security
+- Organize notices using customizable categories
+## How to Navigate to the Compliance Feature
+1. **Log in** to Bernie Portal using your credentials
+2. **Locate the main navigation bar** at the top of the page
+3. **Click on "Compliance"** in the navigation menu
+4. You will be taken to the **Active Notices** page, which serves as the main dashboard for the Compliance feature
+## Major Sections and Workflows
+### 1. Active Notices
+- **Purpose**: Main dashboard showing all current compliance notices
+- **Features**: View active notices, track completion status, access guided walkthrough
+- **Actions**: Monitor ongoing compliance communications and employee progress
+### 2. Categories Management
+- **Purpose**: Organize compliance notices into logical groupings
+- **Features**: Create new categories, reorder existing categories using drag-and-drop
+- **Workflow**:
+  - Click "Categories" link from Active Notices page
+  - Create new categories for organizing notices
+  - Drag and drop to reorder categories as needed
+### 3. Creating and Managing Notices
+- **Workflow for Adding New Notices**:
+  1. Create categories first (if needed)
+  2. Generate new compliance notice
+  3. Select target subgroup of employees
+  4. Assign appropriate category
+  5. Add message content and requirements
+  6. Distribute to selected employees
+### 4. Sending Reminders
+- **Purpose**: Nudge employees who have outstanding compliance notices
+- **Process**:
+  - Navigate to active notices
+  - Select employees needing reminders
+  - Send automated reminder emails
+  - Track reminder effectiveness
+### 5. Viewing Notice Status
+- **Features**:
+  - Track compliance percentages and completion rates
+  - View detailed employee breakdown
+  - Access individual employee status (viewed/signed)
+  - Download confirmation sheets for record-keeping
+### 6. Archived Notices
+- **Purpose**: Access previously completed or archived compliance notices
+- **Features**: Historical record-keeping and reference
+- **Note**: Some archiving features may require premium access
+### 7. Audit Log
+- **Purpose**: Comprehensive logging of all compliance activities
+- **Features**: Track all actions, changes, and communications
+- **Benefits**: Provides accountability and compliance trail for auditing purposes
+### 8. Multi-Factor Authentication (MFA)
+- **Purpose**: Enhanced security for compliance feature access
+- **Features**: Toggle MFA settings for compliance administrators
+- **Note**: Premium feature for enhanced security controls
+### 9. HR Resources
+- **Purpose**: Access Mineral-powered HR resources and legal guidance
+- **Features**:
+  - Location-based resource management
+  - Access to legal updates and compliance guidance
+  - Document templates and HR tools
+- **Access**: Click "Access HR resources" link to launch Mineral interface
+### 10. Subgroups
+- **Purpose**: Generate compliance notices for specific employee groups
+- **Features**:
+  - Create targeted communication groups
+  - Default "All Employees" subgroup available
+  - Each subgroup has unique reference codes for tracking
+- **Benefits**: Allows for targeted compliance communications based on department, role, or other criteria
+## Administrative Access and Permissions
+**Compliance Feature Admins** have specialized capabilities including:
+- Generate and distribute compliance notices
+- View progress and completion statistics
+- Send reminder communications to employees
+- Archive completed notices
+- Access all administrative functions and reports
+## Key Benefits
+- **Streamlined Communication**: Centralized system for all compliance-related employee communications
+- **Progress Tracking**: Real-time visibility into employee compliance status
+- **Automated Reminders**: Reduce manual follow-up work with automated reminder systems
+- **Professional Resources**: Access to Mineral-powered HR resources and legal guidance
+- **Audit Trail**: Comprehensive logging for compliance and audit purposes
+- **Flexible Organization**: Category and subgroup systems for organized communication management
+## Best Practices
+1. **Create Categories First**: Establish logical categories before generating notices for better organization
+2. **Use Subgroups Effectively**: Target specific employee groups rather than always using "All Employees"
+3. **Monitor Status Regularly**: Check compliance percentages and send reminders as needed
+4. **Leverage HR Resources**: Utilize Mineral-powered resources for guidance on compliance requirements
+5. **Maintain Records**: Use the archive and audit log features for proper record-keeping
+6. **Enable MFA**: Consider enabling Multi-Factor Authentication for enhanced security
+This documentation provides comprehensive guidance for using all aspects of the Compliance feature in Bernie Portal, from basic navigation to advanced administrative functions.

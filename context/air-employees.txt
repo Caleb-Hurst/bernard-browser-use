@@ -1,0 +1,77 @@
+## What is the 1094/1095 Feature?
+The 1094/1095 feature in BerniePortal is designed for **Affordable Care Act (ACA) compliance reporting**. It allows employers to generate, manage, edit, deliver, file, and store Form 1094 and Form 1095 using intuitive data import and export features. This feature helps employers meet their ACA reporting requirements by providing structured workflows for form generation and employee data management.
+### Core Functions:
+- Generate IRS-compliant 1094 and 1095 forms
+- Organize employees into subgroups based on Federal Employer Identification Numbers (FEINs)
+- Configure default settings for form generation
+- Assign appropriate ACA codes to employees
+- Download and manage generated forms
+- Handle both 1094-B/1095-B and 1094-C/1095-C form types
+## Navigation to 1094/1095 Feature
+**Step-by-step navigation from the main portal:**
+1. Log into BerniePortal staging environment
+2. From the main navigation bar at the top of the page, locate and click **"1094/1095"**
+3. You will be taken to the 1094/1095 main page with sub-navigation options
+## Feature Overview and Workflow
+The 1094/1095 feature follows a **4-stage process** for form generation:
+### Stage 1: Organize
+- Create and manage employee subgroups
+- Assign employees to appropriate Federal Employer Identification Numbers (FEINs)
+- Set up organizational structure for reporting
+### Stage 2: Configure
+- Set default settings for form generation
+- Configure reporting parameters
+- Establish baseline form configurations
+### Stage 3: Define Employees
+- Assign appropriate ACA codes to employees
+- Review and update employee assignments
+- Ensure all required employee data is complete
+### Stage 4: Generate Files
+- Create the actual 1094 and 1095 forms
+- Generate PDF files for download
+- Export forms for filing with the IRS
+## Sub-Features and Major Workflows
+### 1. List Management
+- **Location:** Click "List" in the sub-navigation
+- **Purpose:** View and manage employee lists for ACA reporting
+- **Key Feature:** Displays message indicating subgroups must be configured first before employee lists can be managed
+- **Workflow:** Employees appear in lists after subgroup configuration is complete
+### 2. Subgroups Management
+- **Location:** Click "Subgroups" in the sub-navigation
+- **Purpose:** Create and manage employee subgroups based on FEINs
+- **Key Features:**
+  - View all employee subgroups
+  - Default "All Employees" subgroup is automatically created
+  - Manage FEIN assignments for different employee groups
+- **Workflow:** This is typically the first step in the process and must be completed before other features are fully functional
+### 3. Forms Download and Management
+- **Location:** Click "Forms" in the sub-navigation
+- **Purpose:** Download and view generated 1094/1095 ACA forms
+- **Key Features:**
+  - Form download interface
+  - PDF generation requirement (forms must be generated before download)
+- **Important Note:** The system displays "Sorry, you have to generate a PDF first" until forms are properly generated through the workflow
+## Key Operational Notes
+### Prerequisites:
+- Subgroups must be configured before other features are fully accessible
+- Employee data must be complete and properly assigned to subgroups
+- FEIN information must be accurate for proper form generation
+### Auto-Population Features:
+- The system includes auto-population capabilities to streamline data entry
+- Employee assignments can be automatically populated based on configured rules
+### Form Types Supported:
+- **1094-B/1095-B Forms:** For smaller employers (under 50 full-time employees)
+- **1094-C/1095-C Forms:** For larger employers (50+ full-time employees)
+## Access and Permission Requirements
+- Users need appropriate administrative access to use the 1094/1095 feature
+- Feature is available through the main navigation bar for authorized users
+- Knowledge Base provides detailed help documentation accessible via the help widget in the bottom-right corner
+## Knowledge Base Resources
+The Knowledge Base contains 23 articles specifically about the 1094/1095 feature, including:
+- "How to Generate, Edit and Download Forms"
+- "Adding Employees to the 1094/1095 List"
+- "1095-C Line 14 and 16 Codes"
+- "Correcting 1094/1095 E-Filing Errors with the IRS"
+- "How to Generate and Download 1094-C / 1095-C Forms"
+- "How to Generate and Download 1094-B / 1095-B Forms"
+These articles provide detailed, step-by-step guidance for all aspects of the feature and should be consulted for specific operational questions.
