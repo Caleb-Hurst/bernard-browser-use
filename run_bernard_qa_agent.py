@@ -344,6 +344,13 @@ async def main():
             video_url = upload_asset(upload_url, latest_video)
             print(f'Video uploaded! Download URL: {video_url}')
             print(f'VIDEO_URL::{video_url}')
+            # Delete the local video file after upload, with a short delay to avoid race conditions
+            import time
+            time.sleep(2)  # Wait 2 seconds to ensure file is finalized
+            try:
+                os.remove(latest_video)
+            except Exception as e:
+                print(f'[WARN] Could not delete video file: {e}')
             if issue_number:
                 update_labels(issue_number)
         else:
