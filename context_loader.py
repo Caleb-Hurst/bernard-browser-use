@@ -26,4 +26,10 @@ def load_context_from_labels(labels, context_dir=None):
         if os.path.exists(context_path):
             with open(context_path, 'r') as f:
                 context_parts.append(f.read())
+        # Attach air-employee context if label is '1094/1095'
+        if label == '1094/1095':
+            air_employee_path = Path(context_dir) / "air-employee.txt"
+            if os.path.exists(air_employee_path):
+                with open(air_employee_path, 'r') as f:
+                    context_parts.append(f.read())
     return "\n\n".join(context_parts)
